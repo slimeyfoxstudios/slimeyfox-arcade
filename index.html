@@ -281,7 +281,7 @@ function resetGame(){
     score = 0;
     health = maxHealth;
     startTime = Date.now();
-    difficulty = 0.35;
+    difficulty = 0.25;
     initEnemies();
     updateHealthBar();
 }
@@ -297,11 +297,11 @@ function update(){
     // ────────────────────────────────────────────────
     //   Difficulty progression – slow & smooth
     // ────────────────────────────────────────────────
-    //  0–60s   → ~0.35–0.5   (easy)
+    //  0–60s   → ~0.25–0.5   (easy)
     //  60–180s → ~0.5–1.2
     //  180–360s→ ~1.2–2.3
     //  360s+   → 2.3–4.0+     (very hard)
-    difficulty = 0.35 + Math.pow(elapsed / 90, 1.35) * 2.8;
+    difficulty = 0.25 + Math.pow(elapsed / 70, 1.6) * 2.8;
     difficulty = Math.min(difficulty, 5.0);   // safety cap
 
     // Update ship
