@@ -1,59 +1,147 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Slimey Fox Arcade</title>
-  <style>
-    body {
-      margin: 0;
-      background: black;
-      overflow: hidden;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    canvas {
-      display: block;
-      margin: auto;
-      background: #111;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Slimey Fox Arcade Test Game</title>
+<style>
+  body {
+    margin: 0;
+    background: black;
+    font-family: Arial, sans-serif;
+    color: white;
+    text-align: center;
+  }
+  canvas {
+    display: block;
+    margin: 20px auto;
+    background: #111;
+    border: 2px solid #444;
+  }
+  #leaderboard {
+    margin: 10px auto;
+    width: 300px;
+    background: #222;
+    padding: 10px;
+    border-radius: 8px;
+  }
+  #leaderboard h3 {
+    margin: 0 0 5px 0;
+    font-size: 18px;
+    color: #ffcc00;
+  }
+  #leaderboard ol {
+    padding-left: 20px;
+    text-align: left;
+  }
+</style>
 </head>
 <body>
 
-<h2>Slimey Fox Arcade - Test Game</h2>
+<h2>Slimey Fox Arcade Test Game</h2>
 <canvas id="game" width="600" height="400"></canvas>
+
+<div id="leaderboard">
+  <h3>Top 10 High Scores</h3>
+  <ol id="scoresList"></ol>
+</div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let x = 300;
-let y = 200;
+const player = { x: 300, y: 200, size: 20, color: "lime" };
+const dot = { x: 0, y: 0, size: 10, color: "yellow" };
 let score = 0;
 
+// Move player with arrow keys
 document.addEventListener("keydown", e => {
-  if (e.key === "ArrowUp") y -= 10;
-  if (e.key === "ArrowDown") y += 10;
-  if (e.key === "ArrowLeft") x -= 10;
-  if (e.key === "ArrowRight") x += 10;
-  score++;
-  localStorage.setItem("highScore", Math.max(score, localStorage.getItem("highScore") || 0));
+  const speed = 10;
+  if (e.key === "ArrowUp") player.y -= speed;
+  if (e.key === "ArrowDown") player.y += speed;
+  if (e.key === "ArrowLeft") player.x -= speed;
+  if (e.key === "ArrowRight") player.x += speed;
+
+  // Keep player inside canvas
+  player.x = Math.max(0, Math.min(canvas.width - player.size, player.x));
+  player.y = Math.max(0, Math.min(canvas.height - player.size, player.y));
 });
 
+// Randomize dot position
+function placeDot() {
+  dot.x = Math.floor(Math.random() * (canvas.width - dot.size));
+  dot.y = Math.floor(Math.random() * (canvas.height - dot.size));
+}
+
+// Check collision
+function collectDot() {
+  if (player.x < dot.x + dot.size &&
+      player.x + player.size > dot.x &&
+      player.y < dot.y + dot.size &&
+      player.y + player.size > dot.y) {
+    score++;
+    placeDot();
+    checkHighScore();
+  }
+}
+
+// High Score System
+function getHighScores() {
+  return JSON.parse(localStorage.getItem("highScores") || "[]");
+}
+
+function saveHighScores(scores) {
+  localStorage.setItem("highScores", JSON.stringify(scores));
+}
+
+function checkHighScore() {
+  const scores = getHighScores();
+  if (scores.length < 10 || score > scores[scores.length - 1].score) {
+    const name = prompt("New High Score! Enter your name:", "Player");
+    if (name) {
+      scores.push({ name: name, score: score });
+      scores.sort((a, b) => b.score - a.score);
+      if (scores.length > 10) scores.pop();
+      saveHighScores(scores);
+      updateLeaderboard();
+    }
+  }
+}
+
+// Draw leaderboard
+function updateLeaderboard() {
+  const scores = getHighScores();
+  const list = document.getElementById("scoresList");
+  list.innerHTML = "";
+  scores.forEach(s => {
+    const li = document.createElement("li");
+    li.textContent = `${s.name} - ${s.score}`;
+    list.appendChild(li);
+  });
+}
+
+// Draw game
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "lime";
-  ctx.fillRect(x, y, 20, 20);
+  // Draw player
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.size, player.size);
 
+  // Draw dot
+  ctx.fillStyle = dot.color;
+  ctx.fillRect(dot.x, dot.y, dot.size, dot.size);
+
+  // Draw score
   ctx.fillStyle = "white";
   ctx.fillText("Score: " + score, 10, 20);
-  ctx.fillText("High Score: " + (localStorage.getItem("highScore") || 0), 10, 40);
 
+  collectDot();
   requestAnimationFrame(draw);
 }
 
+// Initialize
+placeDot();
+updateLeaderboard();
 draw();
 </script>
 
