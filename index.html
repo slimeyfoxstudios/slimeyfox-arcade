@@ -2,28 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Slimey Fox Arcade – Octaroid</title>
+<title>Slimey Blaster</title>
 <style>
 body {
   margin: 0;
   background: black;
-  overflow: hidden;
   font-family: Arial, sans-serif;
   color: white;
-  text-align: center;
-}
-canvas {
-  display: block;
-  margin: 10px auto;
-  background: #000;
-  border: 2px solid #333;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100vh;
 }
 #leaderboard {
-  margin: 10px auto;
-  width: 320px;
+  width: 220px;
   background: #111;
   padding: 10px;
   border-radius: 8px;
+  margin-right: 10px;
 }
 #leaderboard h3 {
   margin: 0 0 5px 0;
@@ -34,16 +31,38 @@ canvas {
   padding-left: 20px;
   text-align: left;
 }
+#gameContainer {
+  position: relative;
+}
+canvas {
+  display: block;
+  background: #000;
+  border: 2px solid #333;
+}
+#hud {
+  position: absolute;
+  top: 10px;
+  right: -180px;
+  width: 160px;
+  text-align: left;
+  font-size: 18px;
+  color: #0f0;
+}
 </style>
 </head>
 <body>
 
-<h2>Slimey Fox Arcade – Octaroid</h2>
-<canvas id="game" width="800" height="600"></canvas>
-
 <div id="leaderboard">
   <h3>Top 10 High Scores</h3>
   <ol id="scoresList"></ol>
+</div>
+
+<div id="gameContainer">
+  <canvas id="game" width="800" height="600"></canvas>
+  <div id="hud">
+    <div id="score">Score: 0</div>
+    <div id="lives">Lives: 5</div>
+  </div>
 </div>
 
 <script>
@@ -52,48 +71,66 @@ canvas {
 // -----------------------------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const hudScore = document.getElementById("score");
+const hudLives = document.getElementById("lives");
 
-const ship = {
-  x: canvas.width/2,
-  y: canvas.height/2,
-  angle: 0,
-  size: 20,
-  dx: 0,
-  dy: 0,
-  color: "lime",
-  lives: 5
-};
-
+const ship = {x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0,color:"lime",lives:5};
 let bullets = [];
 let asteroids = [];
 let score = 0;
 let gameOver = false;
 let startTime = Date.now();
 let difficultyTimer = 0;
-let spawnInterval = 5000; // spawn new asteroid every 5 sec initially
 
 // -----------------------------
 // Sounds - Web Audio API
 // -----------------------------
 const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function beep(frequency, duration, type="sine", volume=0.1) {
+
+// Laser
+function laserSound(){
   const osc = AudioCtx.createOscillator();
   const gain = AudioCtx.createGain();
-  osc.frequency.value = frequency;
-  osc.type = type;
-  gain.gain.value = volume;
+  osc.type = "square";
+  osc.frequency.setValueAtTime(800, AudioCtx.currentTime);
+  gain.gain.value = 0.15;
   osc.connect(gain);
   gain.connect(AudioCtx.destination);
   osc.start();
-  osc.stop(AudioCtx.currentTime + duration);
+  osc.stop(AudioCtx.currentTime+0.05);
+}
+
+// Explosion
+function explosionSound(){
+  const osc = AudioCtx.createOscillator();
+  const gain = AudioCtx.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(120, AudioCtx.currentTime);
+  gain.gain.setValueAtTime(0.2, AudioCtx.currentTime);
+  osc.connect(gain);
+  gain.connect(AudioCtx.destination);
+  osc.start();
+  osc.stop(AudioCtx.currentTime+0.15);
+}
+
+// Ship Death
+function deathSound(){
+  const osc = AudioCtx.createOscillator();
+  const gain = AudioCtx.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(60, AudioCtx.currentTime);
+  gain.gain.setValueAtTime(0.3, AudioCtx.currentTime);
+  osc.connect(gain);
+  gain.connect(AudioCtx.destination);
+  osc.start();
+  osc.stop(AudioCtx.currentTime+0.5);
 }
 
 // Background hum
 const humOsc = AudioCtx.createOscillator();
 const humGain = AudioCtx.createGain();
-humOsc.type = "sine";
-humOsc.frequency.value = 55;
-humGain.gain.value = 0.02;
+humOsc.type="sine"; humOsc.frequency.value=55;
+humGain.gain.value=0.02;
 humOsc.connect(humGain);
 humGain.connect(AudioCtx.destination);
 humOsc.start();
@@ -101,90 +138,68 @@ humOsc.start();
 // -----------------------------
 // Controls
 // -----------------------------
-const keys = {};
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => keys[e.key] = false);
+const keys={};
+document.addEventListener("keydown",e=>keys[e.key]=true);
+document.addEventListener("keyup",e=>keys[e.key]=false);
 
 // -----------------------------
 // Bullets
 // -----------------------------
-function shoot() {
-  const speed = 8;
-  bullets.push({
-    x: ship.x + Math.cos(ship.angle)*ship.size/2,
-    y: ship.y + Math.sin(ship.angle)*ship.size/2,
-    dx: Math.cos(ship.angle)*speed,
-    dy: Math.sin(ship.angle)*speed,
-    size: 4
-  });
-  beep(800,0.05,"square",0.15); // Laser sound
+function shoot(){
+  bullets.push({x:ship.x+Math.cos(ship.angle)*ship.size/2,y:ship.y+Math.sin(ship.angle)*ship.size/2,dx:Math.cos(ship.angle)*8,dy:Math.sin(ship.angle)*8,size:4});
+  laserSound();
 }
 
 // -----------------------------
 // Asteroids
 // -----------------------------
-function createAsteroid(x, y, size=40, speedFactor=1) {
-  asteroids.push({
-    x: x,
-    y: y,
-    dx: (Math.random()*2-1)*1.5*speedFactor,
-    dy: (Math.random()*2-1)*1.5*speedFactor,
-    size: size
-  });
+function createAsteroid(x,y,size=40,speedFactor=1){
+  asteroids.push({x:x,y:y,dx:(Math.random()*2-1)*1.5*speedFactor,dy:(Math.random()*2-1)*1.5*speedFactor,size:size});
 }
 
-function splitAsteroid(a) {
-  if (a.size > 15) {
-    createAsteroid(a.x, a.y, a.size/2, 1.2);
-    createAsteroid(a.x, a.y, a.size/2, 1.2);
+function splitAsteroid(a){
+  if(a.size>15){
+    createAsteroid(a.x,a.y,a.size/2,1.2);
+    createAsteroid(a.x,a.y,a.size/2,1.2);
   }
 }
 
-// Spawn initial asteroids
-for(let i=0;i<6;i++) createAsteroid(Math.random()*canvas.width, Math.random()*canvas.height, 40);
+for(let i=0;i<6;i++) createAsteroid(Math.random()*canvas.width,Math.random()*canvas.height,40);
 
 // -----------------------------
 // Collision
 // -----------------------------
-function checkCollision(ax, ay, ar, bx, by, br) {
-  const dx = ax-bx;
-  const dy = ay-by;
-  const distance = Math.sqrt(dx*dx + dy*dy);
-  return distance < ar+br;
+function checkCollision(ax,ay,ar,bx,by,br){
+  const dx=ax-bx,dy=ay-by;
+  return Math.sqrt(dx*dx+dy*dy)<ar+br;
 }
 
 // -----------------------------
-// High Score System
+// High Score
 // -----------------------------
-function getHighScores() {
-  return JSON.parse(localStorage.getItem("highScores") || "[]");
-}
-
-function saveHighScores(scores) {
-  localStorage.setItem("highScores", JSON.stringify(scores));
-}
-
-function updateLeaderboard() {
-  const scores = getHighScores();
-  const list = document.getElementById("scoresList");
-  list.innerHTML = "";
-  scores.forEach(s => {
-    const li = document.createElement("li");
-    li.textContent = `${s.name} - ${s.score}`;
+function getHighScores(){return JSON.parse(localStorage.getItem("highScores")||"[]");}
+function saveHighScores(scores){localStorage.setItem("highScores",JSON.stringify(scores));}
+function renderLeaderboard(){
+  const scores=getHighScores();
+  const list=document.getElementById("scoresList");
+  list.innerHTML="";
+  scores.forEach(s=>{
+    const li=document.createElement("li");
+    li.textContent=`${s.name} - ${s.score}`;
     list.appendChild(li);
   });
 }
-
-function checkHighScore() {
-  const scores = getHighScores();
-  if (scores.length < 10 || score > scores[scores.length-1].score) {
-    const name = prompt("New High Score! Enter your name:","Player");
-    if (name) {
+function checkHighScore(){
+  const scores=getHighScores();
+  if(scores.length<10||score>scores[scores.length-1].score){
+    let name=prompt("New High Score! Enter name (max 10 chars)","Player");
+    if(name){
+      name=name.substring(0,10);
       scores.push({name:name,score:score});
       scores.sort((a,b)=>b.score-a.score);
-      if (scores.length>10) scores.pop();
+      if(scores.length>10) scores.pop();
       saveHighScores(scores);
-      updateLeaderboard();
+      renderLeaderboard();
     }
   }
 }
@@ -192,33 +207,24 @@ function checkHighScore() {
 // -----------------------------
 // Game Loop
 // -----------------------------
-function update() {
+function update(){
   if(gameOver) return;
-
-  const elapsed = (Date.now()-startTime)/1000; // seconds
-  difficultyTimer += 1/60; // approximate per frame
+  const elapsed=(Date.now()-startTime)/1000;
+  difficultyTimer+=1/60;
 
   // Increase difficulty every 15 sec
   if(difficultyTimer>15){
-    asteroids.forEach(a=>{
-      a.dx *= 1.05;
-      a.dy *= 1.05;
-    });
-    difficultyTimer = 0;
-    // Spawn new asteroid
-    createAsteroid(Math.random()*canvas.width, Math.random()*canvas.height, 40, 1.2);
+    asteroids.forEach(a=>{a.dx*=1.05;a.dy*=1.05;});
+    difficultyTimer=0;
+    createAsteroid(Math.random()*canvas.width,Math.random()*canvas.height,40,1.2);
   }
 
   // Ship movement
-  if(keys["ArrowLeft"]) ship.angle -= 0.08;
-  if(keys["ArrowRight"]) ship.angle += 0.08;
-  if(keys["ArrowUp"]) {
-    ship.dx += Math.cos(ship.angle)*0.2;
-    ship.dy += Math.sin(ship.angle)*0.2;
-  }
+  if(keys["ArrowLeft"]) ship.angle-=0.08;
+  if(keys["ArrowRight"]) ship.angle+=0.08;
+  if(keys["ArrowUp"]){ship.dx+=Math.cos(ship.angle)*0.2;ship.dy+=Math.sin(ship.angle)*0.2;}
 
-  ship.x += ship.dx;
-  ship.y += ship.dy;
+  ship.x+=ship.dx; ship.y+=ship.dy;
 
   // Screen wrap
   if(ship.x<0) ship.x=canvas.width;
@@ -227,23 +233,19 @@ function update() {
   if(ship.y>canvas.height) ship.y=0;
 
   // Shoot
-  if(keys[" "]) { if(!keys._shooted){shoot(); keys._shooted=true;} } 
-  else { keys._shooted=false; }
+  if(keys[" "]){if(!keys._shooted){shoot();keys._shooted=true;}} else{keys._shooted=false;}
 
   // Update bullets
   bullets.forEach((b,i)=>{
-    b.x += b.dx; b.y += b.dy;
-    // remove offscreen
+    b.x+=b.dx;b.y+=b.dy;
     if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) bullets.splice(i,1);
-    // Check collisions
     asteroids.forEach((a,j)=>{
-      if(checkCollision(b.x,b.y, b.size, a.x,a.y,a.size)) {
-        beep(120,0.1,"sawtooth",0.2); // explosion sound
+      if(checkCollision(b.x,b.y,b.size,a.x,a.y,a.size)){
+        explosionSound();
         bullets.splice(i,1);
         splitAsteroid(a);
         asteroids.splice(j,1);
-        score += 10;
-        // Extra life every 500 points
+        score+=10;
         if(score%500===0) ship.lives++;
       }
     });
@@ -251,29 +253,31 @@ function update() {
 
   // Check collisions with ship
   asteroids.forEach(a=>{
-    if(checkCollision(ship.x,ship.y,ship.size/2, a.x,a.y,a.size)) {
-      beep(60,0.5,"triangle",0.4); // death sound
+    if(checkCollision(ship.x,ship.y,ship.size/2,a.x,a.y,a.size)){
+      deathSound();
       ship.lives--;
       if(ship.lives<=0){
-        gameOver = true;
+        gameOver=true;
         checkHighScore();
         alert("Game Over! Score: "+score);
         location.reload();
-      } else {
-        // reset position
-        ship.x = canvas.width/2; ship.y = canvas.height/2; ship.dx=0; ship.dy=0;
+      } else{
+        ship.x=canvas.width/2; ship.y=canvas.height/2; ship.dx=0; ship.dy=0;
       }
     }
   });
 
   // Update asteroids
   asteroids.forEach(a=>{
-    a.x += a.dx; a.y += a.dy;
+    a.x+=a.dx;a.y+=a.dy;
     if(a.x<0) a.x=canvas.width;
     if(a.x>canvas.width) a.x=0;
     if(a.y<0) a.y=canvas.height;
     if(a.y>canvas.height) a.y=0;
   });
+
+  hudScore.textContent="Score: "+score;
+  hudLives.textContent="Lives: "+ship.lives;
 }
 
 // -----------------------------
@@ -283,17 +287,15 @@ function drawShip(){
   ctx.save();
   ctx.translate(ship.x,ship.y);
   ctx.rotate(ship.angle);
-  // glowing neon effect
-  ctx.shadowBlur = 15;
-  ctx.shadowColor = "#0f0";
-  ctx.fillStyle = "#0f0";
+  ctx.shadowBlur=15; ctx.shadowColor="#0f0";
+  ctx.fillStyle="#0f0";
   ctx.beginPath();
   ctx.moveTo(ship.size,0);
   ctx.lineTo(-ship.size/2,ship.size/2);
   ctx.lineTo(-ship.size/2,-ship.size/2);
   ctx.closePath();
   ctx.fill();
-  ctx.shadowBlur = 0;
+  ctx.shadowBlur=0;
   ctx.restore();
 }
 
@@ -301,14 +303,14 @@ function drawAsteroids(){
   asteroids.forEach(a=>{
     ctx.save();
     ctx.translate(a.x,a.y);
-    ctx.strokeStyle = "#f0f";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle="#f0f";
+    ctx.lineWidth=2;
     ctx.beginPath();
     for(let i=0;i<8;i++){
-      const angle = (i/8)*Math.PI*2;
-      const radius = a.size*(0.7+Math.random()*0.3);
-      const px = Math.cos(angle)*radius;
-      const py = Math.sin(angle)*radius;
+      const angle=(i/8)*Math.PI*2;
+      const radius=a.size*(0.7+Math.random()*0.3);
+      const px=Math.cos(angle)*radius;
+      const py=Math.sin(angle)*radius;
       if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
     }
     ctx.closePath();
@@ -318,7 +320,7 @@ function drawAsteroids(){
 }
 
 function drawBullets(){
-  ctx.fillStyle = "#0ff";
+  ctx.fillStyle="#0ff";
   bullets.forEach(b=>{
     ctx.beginPath();
     ctx.arc(b.x,b.y,b.size,0,Math.PI*2);
@@ -327,14 +329,12 @@ function drawBullets(){
 }
 
 function drawHUD(){
+  const elapsedSec=Math.floor((Date.now()-startTime)/1000);
+  const min=Math.floor(elapsedSec/60).toString().padStart(2,'0');
+  const sec=(elapsedSec%60).toString().padStart(2,'0');
   ctx.fillStyle="white";
   ctx.font="20px Arial";
-  ctx.fillText("Score: "+score, 10, 30);
-  ctx.fillText("Lives: "+ship.lives, 10, 55);
-  const elapsedSec = Math.floor((Date.now()-startTime)/1000);
-  const min = Math.floor(elapsedSec/60).toString().padStart(2,'0');
-  const sec = (elapsedSec%60).toString().padStart(2,'0');
-  ctx.fillText(`Time: ${min}:${sec}`, 10, 80);
+  ctx.fillText(`Time: ${min}:${sec}`, 10, 30);
 }
 
 function loop(){
@@ -348,9 +348,8 @@ function loop(){
 }
 
 // Initialize
-updateLeaderboard();
+renderLeaderboard();
 loop();
 </script>
-
 </body>
 </html>
