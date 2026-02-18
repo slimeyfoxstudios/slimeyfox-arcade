@@ -1,7 +1,3 @@
-// Render leaderboard on page load
-document.addEventListener("DOMContentLoaded", ()=>{
-    renderLeaderboard();
-});
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -474,3 +470,7 @@ function update(){
             if(e.type!=="health") e.health=0;
         }
         e.x+=e.dx*(1+difficultyFactor
+// Render leaderboard on page load
+document.addEventListener("DOMContentLoaded", ()=>{
+    renderLeaderboard();
+});
