@@ -59,6 +59,45 @@ canvas {
   font-size: 18px;
   color: #0f0;
 }
+#healthContainer {
+  position: relative;
+  width: 30px;
+  height: 200px;
+  background: #333;
+  border: 2px solid #0f0;
+  margin-top: 20px;
+}
+#healthBar {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: green;
+}
+#overlay {
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.85);
+  color:#0ff;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  font-family: Arial;
+  font-size:32px;
+  z-index:10;
+}
+#overlay button {
+  margin-top:20px;
+  padding:15px 30px;
+  font-size:24px;
+  color:#0ff;
+  background:#111;
+  border:2px solid #0ff;
+  border-radius:8px;
+  cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -73,7 +112,13 @@ canvas {
   <canvas id="game" width="800" height="600"></canvas>
   <div id="hud">
     <div id="score">Score: 0</div>
-    <div id="health">Health: 100%</div>
+    <div id="healthContainer">
+      <div id="healthBar"></div>
+    </div>
+  </div>
+  <div id="overlay">
+    <div id="overlayText">SLIMEY BLASTER</div>
+    <button id="startButton">START GAME</button>
   </div>
 </div>
 
@@ -84,18 +129,17 @@ canvas {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const hudScore = document.getElementById("score");
-const hudHealth = document.getElementById("health");
-
-const ship = {x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0,color:"lime"};
+const healthBar = document.getElementById("healthBar");
+let ship = {x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0};
 let bullets = [];
 let enemies = [];
 let particles = [];
 let score = 0;
 let health = 100;
 const maxHealth = 100;
-let gameOver = false;
-let startTime = Date.now();
+let startTime = 0;
 let difficultyTimer = 0;
+let gameState = "menu";
 
 // -----------------------------
 // Background stars
@@ -106,7 +150,7 @@ for(let i=0;i<150;i++){
 }
 
 // -----------------------------
-// Sounds - Web Audio API
+// Sounds
 // -----------------------------
 const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function laserSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="square";o.frequency.setValueAtTime(800,AudioCtx.currentTime);g.gain.value=0.15;o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.05);}
@@ -143,9 +187,12 @@ function createEnemy(type){
   if(type==="swarm") enemies.push({x,y,dx:(Math.random()*2-1)*3,dy:(Math.random()*2-1)*3,size:10,type:"swarm",health:1});
 }
 
-for(let i=0;i<5;i++) createEnemy("boulder");
-for(let i=0;i<2;i++) createEnemy("alien");
-for(let i=0;i<3;i++) createEnemy("swarm");
+function initEnemies(){
+  enemies = [];
+  for(let i=0;i<5;i++) createEnemy("boulder");
+  for(let i=0;i<2;i++) createEnemy("alien");
+  for(let i=0;i<3;i++) createEnemy("swarm");
+}
 
 // -----------------------------
 // Particles
@@ -160,11 +207,44 @@ function createParticles(x,y,color,count=10){
 // Collision
 // -----------------------------
 function checkCollision(ax,ay,ar,bx,by,br){return Math.hypot(ax-bx,ay-by)<ar+br;}
-function takeDamage(amount){health-=amount;if(health<0) health=0;if(health===0){gameOver=true;deathSound();checkHighScore();alert("Game Over! Score: "+score);location.reload();}}
+function takeDamage(amount){
+    health-=amount;
+    if(health<0) health=0;
+    updateHealthBar();
+    if(health===0){
+        deathSound();
+        gameOverSequence();
+    }
+}
 
 // -----------------------------
-// High Score
+// Health bar
 // -----------------------------
+function updateHealthBar(){
+    const percent = Math.max(0, health) / maxHealth * 100;
+    healthBar.style.height = percent + "%";
+    if(percent > 50) healthBar.style.background = "green";
+    else if(percent > 25) healthBar.style.background = "yellow";
+    else healthBar.style.background = "red";
+}
+
+// -----------------------------
+// High Score with profanity filter
+// -----------------------------
+const banned = [
+  "ass","bastard","bitch","bollocks","bugger","childfuck","cocksucker","cunt",
+  "dick","dildo","dyke","fag","faggot","fuck","fucker","goddamn","hell",
+  "homo","jerk","kike","motherfucker","nigger","piss","prick","pussy","shit",
+  "slut","spastic","twat","whore"
+];
+function sanitizeName(name){
+    let clean = name.substring(0,10);
+    banned.forEach(word=>{
+        const regex = new RegExp(word,"gi");
+        clean = clean.replace(regex, "*".repeat(word.length));
+    });
+    return clean;
+}
 function getHighScores(){return JSON.parse(localStorage.getItem("highScores")||"[]");}
 function saveHighScores(scores){localStorage.setItem("highScores",JSON.stringify(scores));}
 function renderLeaderboard(){
@@ -177,7 +257,14 @@ function checkHighScore(){
   const scores=getHighScores();
   if(scores.length<10||score>scores[scores.length-1].score){
     let name=prompt("New High Score! Enter name (max 10 chars)","Player");
-    if(name){name=name.substring(0,10);scores.push({name:name,score:score});scores.sort((a,b)=>b.score-a.score);if(scores.length>10) scores.pop();saveHighScores(scores);renderLeaderboard();}
+    if(name){
+      name=sanitizeName(name);
+      scores.push({name:name,score:score});
+      scores.sort((a,b)=>b.score-a.score);
+      if(scores.length>10) scores.pop();
+      saveHighScores(scores);
+      renderLeaderboard();
+    }
   }
 }
 
@@ -200,93 +287,115 @@ document.getElementById("howToPlay").addEventListener("click", ()=>{
 });
 
 // -----------------------------
-// Game Loop
+// Overlay / Start & Game Over
 // -----------------------------
-function update(){
-  if(gameOver) return;
-  const elapsed=(Date.now()-startTime)/1000;
-  difficultyTimer+=1/60;
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+const startButton = document.getElementById("startButton");
 
-  // Increase difficulty every 15 sec
-  if(difficultyTimer>15){
-    enemies.forEach(e=>{e.dx*=1.05;e.dy*=1.05;});
-    difficultyTimer=0;
-    createEnemy(["boulder","alien","swarm"][Math.floor(Math.random()*3)]);
-    // Health boost for surviving milestone
-    health+=20;if(health>maxHealth) health=maxHealth;
-  }
-
-  // Ship movement
-  if(keys["ArrowLeft"]) ship.angle-=0.08;
-  if(keys["ArrowRight"]) ship.angle+=0.08;
-  if(keys["ArrowUp"]){ship.dx+=Math.cos(ship.angle)*0.2;ship.dy+=Math.sin(ship.angle)*0.2;}
-
-  ship.x+=ship.dx; ship.y+=ship.dy;
-
-  // Screen wrap
-  if(ship.x<0) ship.x=canvas.width;
-  if(ship.x>canvas.width) ship.x=0;
-  if(ship.y<0) ship.y=canvas.height;
-  if(ship.y>canvas.height) ship.y=0;
-
-  // Shoot
-  if(keys[" "]){if(!keys._shooted){shoot();keys._shooted=true;}} else{keys._shooted=false;}
-
-  // Update bullets
-  bullets.forEach((b,i)=>{
-    b.x+=b.dx;b.y+=b.dy;
-    if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) bullets.splice(i,1);
-    enemies.forEach((e,j)=>{
-      if(checkCollision(b.x,b.y,b.size,e.x,e.y,e.size)){
-        createParticles(e.x,e.y,"#f0f");
-        bullets.splice(i,1);
-        e.health--;
-        if(e.health<=0){
-          explosionSound();
-          if(e.type==="boulder" && e.size>15){
-            createEnemy("boulder"); createEnemy("boulder");
-          }
-          if(e.type==="alien") score+=20;
-          else score+=10;
-          enemies.splice(j,1);
-        }
-      }
-    });
-  });
-
-  // Check collisions with ship
-  enemies.forEach(e=>{
-    if(checkCollision(ship.x,ship.y,ship.size/2,e.x,e.y,e.size)){
-      takeDamage(20);
-      createParticles(ship.x,ship.y,"#0f0",15);
-      e.health=0;
+startButton.addEventListener("click", ()=>{
+    if(gameState==="menu" || gameState==="gameover"){
+        gameState="playing";
+        overlay.style.display="none";
+        resetGame();
+        loop();
     }
-  });
+});
 
-  // Update enemies
-  enemies.forEach(e=>{
-    e.x+=e.dx; e.y+=e.dy;
-    if(e.x<0) e.x=canvas.width;
-    if(e.x>canvas.width) e.x=0;
-    if(e.y<0) e.y=canvas.height;
-    if(e.y>canvas.height) e.y=0;
-  });
-
-  // Update particles
-  particles.forEach((p,i)=>{p.x+=p.dx;p.y+=p.dy;p.life--; if(p.life<=0) particles.splice(i,1);});
-
-  // Occasionally spawn bonus health
-  if(Math.random()<0.001 && !enemies.some(e=>e.type==="health")){
-    enemies.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,dx:0,dy:0,size:20,type:"health",health:1});
-  }
-
-  hudScore.textContent="Score: "+score;
-  hudHealth.textContent="Health: "+health+"%";
+function gameOverSequence(){
+    gameState="gameover";
+    overlayText.textContent="GAME OVER";
+    startButton.textContent="PLAY AGAIN";
+    overlay.style.display="flex";
+    checkHighScore();
 }
 
 // -----------------------------
-// Draw
+// Reset Game
 // -----------------------------
+function resetGame(){
+    ship = {x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0};
+    bullets = [];
+    particles = [];
+    score = 0;
+    health = maxHealth;
+    startTime = Date.now();
+    difficultyTimer = 0;
+    initEnemies();
+    updateHealthBar();
+}
+
+// -----------------------------
+// Game Loop
+// -----------------------------
+function update(){
+    if(gameState!=="playing") return;
+    const elapsed=(Date.now()-startTime)/1000;
+    difficultyTimer+=1/60;
+
+    if(difficultyTimer>15){
+        enemies.forEach(e=>{e.dx*=1.05;e.dy*=1.05;});
+        difficultyTimer=0;
+        createEnemy(["boulder","alien","swarm"][Math.floor(Math.random()*3)]);
+        health+=20; if(health>maxHealth) health=maxHealth;
+        updateHealthBar();
+    }
+
+    if(keys["ArrowLeft"]) ship.angle-=0.08;
+    if(keys["ArrowRight"]) ship.angle+=0.08;
+    if(keys["ArrowUp"]){ship.dx+=Math.cos(ship.angle)*0.2;ship.dy+=Math.sin(ship.angle)*0.2;}
+
+    ship.x+=ship.dx; ship.y+=ship.dy;
+    if(ship.x<0) ship.x=canvas.width;
+    if(ship.x>canvas.width) ship.x=0;
+    if(ship.y<0) ship.y=canvas.height;
+    if(ship.y>canvas.height) ship.y=0;
+
+    if(keys[" "] && !keys._shooted){shoot(); keys._shooted=true;} 
+    if(!keys[" "]) keys._shooted=false;
+
+    bullets.forEach((b,i)=>{
+        b.x+=b.dx; b.y+=b.dy;
+        if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) bullets.splice(i,1);
+        enemies.forEach((e,j)=>{
+            if(checkCollision(b.x,b.y,b.size,e.x,e.y,e.size)){
+                createParticles(e.x,e.y,"#f0f");
+                bullets.splice(i,1);
+                e.health--;
+                if(e.health<=0){
+                    explosionSound();
+                    if(e.type==="boulder" && e.size>15){createEnemy("boulder"); createEnemy("boulder");}
+                    if(e.type==="alien") score+=20; else score+=10;
+                    enemies.splice(j,1);
+                }
+            }
+        });
+    });
+
+    enemies.forEach(e=>{
+        if(checkCollision(ship.x,ship.y,ship.size/2,e.x,e.y,e.size)){
+            takeDamage(20);
+            createParticles(ship.x,ship.y,"#0f0",15);
+            e.health=0;
+        }
+        e.x+=e.dx; e.y+=e.dy;
+        if(e.x<0) e.x=canvas.width;
+        if(e.x>canvas.width) e.x=0;
+        if(e.y<0) e.y=canvas.height;
+        if(e.y>canvas.height) e.y=0;
+    });
+
+    particles.forEach((p,i)=>{p.x+=p.dx;p.y+=p.dy;p.life--; if(p.life<=0) particles.splice(i,1);});
+
+    // Occasionally spawn bonus health
+    if(Math.random()<0.001 && !enemies.some(e=>e.type==="health")){
+        enemies.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,dx:0,dy:0,size:20,type:"health",health:1});
+    }
+
+    hudScore.textContent="Score: "+score;
+    updateHealthBar();
+}
+
 function drawShip(){
   ctx.save();
   ctx.translate(ship.x,ship.y);
@@ -380,6 +489,7 @@ function drawStars(){
 }
 
 function loop(){
+  if(gameState!=="playing") return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
   drawStars();
   update();
@@ -393,7 +503,6 @@ function loop(){
 
 // Initialize
 renderLeaderboard();
-loop();
 </script>
 
 </body>
