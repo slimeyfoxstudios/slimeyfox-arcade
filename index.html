@@ -4,105 +4,19 @@
 <meta charset="UTF-8">
 <title>Slimey Blaster</title>
 <style>
-body {
-  margin: 0;
-  background: black;
-  font-family: Arial, sans-serif;
-  color: white;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-start;
-  height: 100vh;
-}
-#leaderboard {
-  width: 220px;
-  background: #111;
-  padding: 10px;
-  border-radius: 8px;
-  margin-right: 10px;
-}
-#leaderboard h3 {
-  margin: 0 0 5px 0;
-  font-size: 18px;
-  color: #0ff;
-}
-#leaderboard ol {
-  padding-left: 20px;
-  text-align: left;
-}
-#howToPlay {
-  margin-top:10px;
-  width:100%;
-  padding:8px;
-  font-size:16px;
-  color:#0ff;
-  background:#111;
-  border:2px solid #0ff;
-  border-radius:5px;
-  cursor:pointer;
-}
-#gameContainer {
-  position: relative;
-}
-canvas {
-  display: block;
-  background: #000;
-  border: 2px solid #333;
-}
-#hud {
-  position: absolute;
-  top: 10px;
-  right: -180px;
-  width: 160px;
-  text-align: left;
-  font-size: 18px;
-  color: #0f0;
-}
-#healthContainer {
-  position: relative;
-  width: 30px;
-  height: 200px;
-  background: #333;
-  border: 2px solid #0f0;
-  margin-top: 20px;
-}
-#healthBar {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-  background: green;
-}
-#overlay {
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  background: rgba(0,0,0,0.85);
-  color:#0ff;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  font-family: Arial;
-  font-size:32px;
-  z-index:10;
-  transition: opacity 0.4s;
-}
-#overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-#overlay button {
-  margin-top:20px;
-  padding:15px 30px;
-  font-size:24px;
-  color:#0ff;
-  background:#111;
-  border:2px solid #0ff;
-  border-radius:8px;
-  cursor:pointer;
-}
+body { margin:0; background:black; font-family:Arial,sans-serif; color:white; display:flex; flex-direction:row; justify-content:center; align-items:flex-start; height:100vh; }
+#leaderboard { width:220px; background:#111; padding:10px; border-radius:8px; margin-right:10px; }
+#leaderboard h3 { margin:0 0 5px 0; font-size:18px; color:#0ff; }
+#leaderboard ol { padding-left:20px; text-align:left; }
+#howToPlay { margin-top:10px; width:100%; padding:8px; font-size:16px; color:#0ff; background:#111; border:2px solid #0ff; border-radius:5px; cursor:pointer; }
+#gameContainer { position:relative; }
+canvas { display:block; background:#000; border:2px solid #333; }
+#hud { position:absolute; top:10px; right:-180px; width:160px; text-align:left; font-size:18px; color:#0f0; }
+#healthContainer { position:relative; width:30px; height:200px; background:#333; border:2px solid #0f0; margin-top:20px; }
+#healthBar { position:absolute; bottom:0; width:100%; height:100%; background:green; }
+#overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); color:#0ff; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:Arial; font-size:32px; z-index:10; transition:opacity 0.4s; }
+#overlay.hidden { opacity:0; pointer-events:none; }
+#overlay button { margin-top:20px; padding:15px 30px; font-size:24px; color:#0ff; background:#111; border:2px solid #0ff; border-radius:8px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -115,9 +29,7 @@ canvas {
   <canvas id="game" width="800" height="600"></canvas>
   <div id="hud">
     <div id="score">Score: 0</div>
-    <div id="healthContainer">
-      <div id="healthBar"></div>
-    </div>
+    <div id="healthContainer"><div id="healthBar"></div></div>
   </div>
   <div id="overlay">
     <div id="overlayText">SLIMEY BLASTER</div>
@@ -126,14 +38,16 @@ canvas {
 </div>
 
 <script>
-// -----------------------------
+// ────────────────────────────────────────────────
 // Setup
-// -----------------------------
+// ────────────────────────────────────────────────
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const hudScore = document.getElementById("score");
 const healthBar = document.getElementById("healthBar");
 const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+const startButton = document.getElementById("startButton");
 
 let ship = {x:canvas.width/2, y:canvas.height/2, angle:0, size:20, dx:0, dy:0};
 let bullets = [];
@@ -148,49 +62,59 @@ let difficulty = 0.25;
 let lastSpawnTime = 0;
 const minSpawnDelay = 2200;
 
-// Resume audio context on first interaction (fixes silent start in many browsers)
-document.body.addEventListener('click', () => {
-  if (AudioCtx.state === 'suspended') AudioCtx.resume();
-}, {once: true});
+// Audio context (will resume on user gesture)
+const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-// -----------------------------
+// ────────────────────────────────────────────────
+// Resume audio on any click (helps a lot)
+// ────────────────────────────────────────────────
+function resumeAudio() {
+  if (AudioCtx.state === 'suspended') {
+    AudioCtx.resume();
+  }
+}
+document.addEventListener('click', resumeAudio, {once: false});
+document.addEventListener('touchstart', resumeAudio, {once: false});
+
+// ────────────────────────────────────────────────
+// Sounds
+// ────────────────────────────────────────────────
+function laserSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="square";o.frequency.setValueAtTime(800,AudioCtx.currentTime);g.gain.value=0.15;o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.05);}
+function explosionSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="sawtooth";o.frequency.setValueAtTime(120,AudioCtx.currentTime);g.gain.setValueAtTime(0.2,AudioCtx.currentTime);o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.15);}
+function deathSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="triangle";o.frequency.setValueAtTime(60,AudioCtx.currentTime);g.gain.setValueAtTime(0.3,AudioCtx.currentTime);o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.5);}
+
+// ────────────────────────────────────────────────
 // Background stars
-// -----------------------------
+// ────────────────────────────────────────────────
 const stars = [];
 for(let i=0;i<150;i++){
   stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,size:Math.random()*2+1,speed:Math.random()*0.3+0.1});
 }
 
-// -----------------------------
-// Sounds
-// -----------------------------
-const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function laserSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="square";o.frequency.setValueAtTime(800,AudioCtx.currentTime);g.gain.value=0.15;o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.05);}
-function explosionSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="sawtooth";o.frequency.setValueAtTime(120,AudioCtx.currentTime);g.gain.setValueAtTime(0.2,AudioCtx.currentTime);o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.15);}
-function deathSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="triangle";o.frequency.setValueAtTime(60,AudioCtx.currentTime);g.gain.setValueAtTime(0.3,AudioCtx.currentTime);o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.5);}
-const humOsc = AudioCtx.createOscillator();
-const humGain = AudioCtx.createGain();
-humOsc.type="sine"; humOsc.frequency.value=55; humGain.gain.value=0.02;
-humOsc.connect(humGain); humGain.connect(AudioCtx.destination); humOsc.start();
-
-// -----------------------------
+// ────────────────────────────────────────────────
 // Controls
-// -----------------------------
-const keys={};
-document.addEventListener("keydown",e=>keys[e.key]=true);
-document.addEventListener("keyup",e=>keys[e.key]=false);
+// ────────────────────────────────────────────────
+const keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
 
-// -----------------------------
-// Bullets
-// -----------------------------
-function shoot(){
-  bullets.push({x:ship.x+Math.cos(ship.angle)*ship.size/2,y:ship.y+Math.sin(ship.angle)*ship.size/2,dx:Math.cos(ship.angle)*8,dy:Math.sin(ship.angle)*8,size:4});
+// ────────────────────────────────────────────────
+// Shoot
+// ────────────────────────────────────────────────
+function shoot() {
+  bullets.push({
+    x: ship.x + Math.cos(ship.angle) * ship.size / 2,
+    y: ship.y + Math.sin(ship.angle) * ship.size / 2,
+    dx: Math.cos(ship.angle) * 8,
+    dy: Math.sin(ship.angle) * 8,
+    size: 4
+  });
   laserSound();
 }
 
-// -----------------------------
-// Safe edge spawn position
-// -----------------------------
+// ────────────────────────────────────────────────
+// Spawn position (edge + safe from player)
+// ────────────────────────────────────────────────
 function getEdgeSpawnPosition() {
   const margin = 90;
   const safeZone = 160;
@@ -213,9 +137,9 @@ function getEdgeSpawnPosition() {
   return {x, y};
 }
 
-// -----------------------------
+// ────────────────────────────────────────────────
 // Create enemy
-// -----------------------------
+// ────────────────────────────────────────────────
 function createEnemy(type, forcedSize = null) {
   const pos = getEdgeSpawnPosition();
   const x = pos.x; const y = pos.y;
@@ -226,180 +150,398 @@ function createEnemy(type, forcedSize = null) {
 
   let size = forcedSize !== null ? forcedSize : (type === "boulder" ? 40 : type === "alien" ? 25 : 10);
 
-  if(type==="boulder") enemies.push({x,y,dx:(Math.random()*2-1)*baseSpeed*0.6, dy:(Math.random()*2-1)*baseSpeed*0.6, size, type:"boulder", health:1});
-  if(type==="alien") enemies.push({x,y,dx:(Math.random()*2-1)*baseSpeed*0.9, dy:(Math.random()*2-1)*baseSpeed*0.9, size, type:"alien", health:2});
-  if(type==="swarm") enemies.push({x,y,dx:(Math.random()*2-1)*baseSpeed*1.3, dy:(Math.random()*2-1)*baseSpeed*1.3, size, type:"swarm", health:1});
-  if(type==="health") enemies.push({x,y,dx:0, dy:0, size:20, type:"health", health:1});
+  let enemy = {x, y, size, type, health: type === "alien" ? 2 : 1};
 
+  if (type === "health") {
+    enemy.dx = 0; enemy.dy = 0; enemy.health = 1;
+  } else {
+    const speedFactor = type === "boulder" ? 0.6 : type === "alien" ? 0.9 : 1.3;
+    enemy.dx = (Math.random()*2-1) * baseSpeed * speedFactor;
+    enemy.dy = (Math.random()*2-1) * baseSpeed * speedFactor;
+  }
+
+  enemies.push(enemy);
   lastSpawnTime = Date.now();
 }
 
-function initEnemies(){
+function initEnemies() {
   enemies = [];
-  for(let i=0;i<3;i++) createEnemy("boulder");
-  if(Math.random()<0.5) createEnemy("health");
+  for(let i = 0; i < 3; i++) createEnemy("boulder");
+  if (Math.random() < 0.5) createEnemy("health");
 }
 
-// -----------------------------
-// Particles etc.
-// -----------------------------
-function createParticles(x,y,color,count=10){
-  for(let i=0;i<count;i++){
-    particles.push({x,y,dx:(Math.random()*4-2),dy:(Math.random()*4-2),size:Math.random()*3+1,life:30,color});
+// ────────────────────────────────────────────────
+// Particles & collision helpers
+// ────────────────────────────────────────────────
+function createParticles(x, y, color, count = 10) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      dx: Math.random() * 4 - 2,
+      dy: Math.random() * 4 - 2,
+      size: Math.random() * 3 + 1,
+      life: 30,
+      color
+    });
   }
 }
 
-function checkCollision(ax,ay,ar,bx,by,br){return Math.hypot(ax-bx,ay-by)<ar+br;}
-
-function takeDamage(amount){
-    health-=amount;
-    if(health<0) health=0;
-    updateHealthBar();
-    if(health<=0){
-        deathSound();
-        gameOverSequence();
-    }
+function checkCollision(ax, ay, ar, bx, by, br) {
+  return Math.hypot(ax - bx, ay - by) < ar + br;
 }
 
-function updateHealthBar(){
-    const percent = Math.max(0, health) / maxHealth * 100;
-    healthBar.style.height = percent + "%";
-    if(percent > 50) healthBar.style.background = "green";
-    else if(percent > 25) healthBar.style.background = "yellow";
-    else healthBar.style.background = "red";
+function takeDamage(amount) {
+  health -= amount;
+  if (health < 0) health = 0;
+  updateHealthBar();
+  if (health <= 0) {
+    deathSound();
+    gameOverSequence();
+  }
 }
 
-// -----------------------------
+function updateHealthBar() {
+  const percent = Math.max(0, health) / maxHealth * 100;
+  healthBar.style.height = percent + "%";
+  if (percent > 50) healthBar.style.background = "green";
+  else if (percent > 25) healthBar.style.background = "yellow";
+  else healthBar.style.background = "red";
+}
+
+// ────────────────────────────────────────────────
 // High Scores
-// -----------------------------
+// ────────────────────────────────────────────────
 const banned = ["ass","bastard","bitch","bollocks","bugger","childfuck","cocksucker","cunt","dick","dildo","dyke","fag","faggot","fuck","fucker","goddamn","hell","homo","jerk","kike","motherfucker","nigger","piss","prick","pussy","shit","slut","spastic","twat","whore"];
 
-function sanitizeName(name){
-    let clean = (name || "Player").trim().substring(0,10);
-    banned.forEach(word => {
-        const regex = new RegExp(word, "gi");
-        clean = clean.replace(regex, "*".repeat(word.length));
-    });
-    return clean || "Player";
+function sanitizeName(name) {
+  let clean = (name || "Player").trim().substring(0,10);
+  banned.forEach(word => {
+    const regex = new RegExp(word, "gi");
+    clean = clean.replace(regex, "*".repeat(word.length));
+  });
+  return clean || "Player";
 }
 
 function getHighScores() {
-    try {
-        const data = localStorage.getItem("highScores");
-        return data ? JSON.parse(data) : [];
-    } catch(e) {
-        return [];
-    }
+  try {
+    const data = localStorage.getItem("highScores");
+    return data ? JSON.parse(data) : [];
+  } catch(e) {
+    return [];
+  }
 }
 
 function saveHighScores(scores) {
-    localStorage.setItem("highScores", JSON.stringify(scores));
+  localStorage.setItem("highScores", JSON.stringify(scores));
 }
 
-function renderLeaderboard(){
-    const scores = getHighScores();
-    const list = document.getElementById("scoresList");
-    list.innerHTML = "";
-    scores.forEach(s => {
-        const li = document.createElement("li");
-        li.textContent = `${s.name} - ${s.score}`;
-        list.appendChild(li);
-    });
+function renderLeaderboard() {
+  const scores = getHighScores();
+  const list = document.getElementById("scoresList");
+  list.innerHTML = "";
+  scores.forEach(s => {
+    const li = document.createElement("li");
+    li.textContent = `${s.name} - ${s.score}`;
+    list.appendChild(li);
+  });
 }
 
 function checkHighScore() {
-    const scores = getHighScores();
-    let lowest = scores.length > 0 ? scores[scores.length - 1].score : 0;
-    const qualifies = scores.length < 10 || score > lowest;
-
-    if (qualifies) {
-        let name = prompt(`New High Score! ${score} points\nEnter name (max 10 chars):`, "Slimey");
-        if (name !== null && name.trim() !== "") {
-            name = sanitizeName(name);
-            scores.push({name, score});
-            scores.sort((a,b) => b.score - a.score);
-            if (scores.length > 10) scores.pop();
-            saveHighScores(scores);
-            renderLeaderboard();
-        }
+  const scores = getHighScores();
+  let lowest = scores.length > 0 ? scores[scores.length - 1].score : 0;
+  if (scores.length < 10 || score > lowest) {
+    let name = prompt(`New High Score! ${score} points\nEnter name (max 10 chars):`, "Slimey");
+    if (name !== null && name.trim()) {
+      name = sanitizeName(name);
+      scores.push({name, score});
+      scores.sort((a,b) => b.score - a.score);
+      if (scores.length > 10) scores.pop();
+      saveHighScores(scores);
+      renderLeaderboard();
     }
+  }
 }
 
-// -----------------------------
+// ────────────────────────────────────────────────
 // How to Play
-// -----------------------------
+// ────────────────────────────────────────────────
 document.getElementById("howToPlay").addEventListener("click", () => {
-  alert(`Slimey Blaster\n\nControls:\n← → Rotate\n↑ Thrust\nSpace Shoot\n\nGoal: Survive!\nBoulders split when shot\nGreen orbs = health`);
+  alert("Slimey Blaster\n\n← → Rotate   ↑ Thrust   Space Shoot\n\nShoot boulders to split them\nGreen orbs restore health\nSurvive as long as possible!");
 });
 
-// -----------------------------
-// Overlay / Game Over
-// -----------------------------
-const overlayText = document.getElementById("overlayText");
-const startButton = document.getElementById("startButton");
-
+// ────────────────────────────────────────────────
+// Start / Game Over
+// ────────────────────────────────────────────────
 startButton.addEventListener("click", () => {
-    if (gameState === "menu" || gameState === "gameover") {
-        if (AudioCtx.state === 'suspended') AudioCtx.resume();
-        gameState = "playing";
-        overlay.classList.add("hidden");
-        resetGame();
-        requestAnimationFrame(loop);
-    }
+  resumeAudio();
+  if (gameState === "menu" || gameState === "gameover") {
+    gameState = "playing";
+    overlay.classList.add("hidden");
+    resetGame();
+    requestAnimationFrame(loop);
+  }
 });
 
 function gameOverSequence() {
-    gameState = "gameover";
-    overlayText.textContent = `GAME OVER\nScore: ${score}`;
-    startButton.textContent = "PLAY AGAIN";
-    overlay.classList.remove("hidden");
-    checkHighScore();
+  gameState = "gameover";
+  overlayText.textContent = `GAME OVER\nScore: ${score}`;
+  startButton.textContent = "PLAY AGAIN";
+  overlay.classList.remove("hidden");
+  checkHighScore();
 }
 
-// -----------------------------
-// Reset
-// -----------------------------
-function resetGame(){
-    ship = {x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0};
-    bullets = [];
-    particles = [];
-    score = 0;
-    health = maxHealth;
-    startTime = Date.now();
-    difficulty = 0.25;
-    lastSpawnTime = 0;
-    initEnemies();
-    updateHealthBar();
-    hudScore.textContent = "Score: 0";
+// ────────────────────────────────────────────────
+// Reset game
+// ────────────────────────────────────────────────
+function resetGame() {
+  ship = {x: canvas.width/2, y: canvas.height/2, angle: 0, size: 20, dx: 0, dy: 0};
+  bullets = [];
+  enemies = [];
+  particles = [];
+  score = 0;
+  health = maxHealth;
+  startTime = Date.now();
+  difficulty = 0.25;
+  lastSpawnTime = 0;
+  initEnemies();
+  updateHealthBar();
+  hudScore.textContent = "Score: 0";
 }
 
-// -----------------------------
-// Game Loop
-// -----------------------------
-function update(){
-    if(gameState!=="playing") return;
+// ────────────────────────────────────────────────
+// UPDATE logic
+// ────────────────────────────────────────────────
+function update() {
+  if (gameState !== "playing") return;
 
-    const now = Date.now();
-    const elapsed = (now - startTime) / 1000;
+  const now = Date.now();
+  const elapsed = (now - startTime) / 1000;
 
-    if (elapsed < 120) {
-        difficulty = 0.25 + (elapsed / 120) * 0.4;
-    } else {
-        difficulty = 0.65 + Math.pow((elapsed - 120) / 90, 1.4) * 3.0;
+  // Difficulty: very easy first 2 min, then ramp
+  if (elapsed < 120) {
+    difficulty = 0.25 + (elapsed / 120) * 0.4;
+  } else {
+    difficulty = 0.65 + Math.pow((elapsed - 120) / 90, 1.4) * 3.0;
+  }
+  difficulty = Math.min(difficulty, 4.5);
+
+  // Ship movement
+  if (keys["ArrowLeft"]) ship.angle -= 0.08;
+  if (keys["ArrowRight"]) ship.angle += 0.08;
+  if (keys["ArrowUp"]) {
+    ship.dx += Math.cos(ship.angle) * 0.16;
+    ship.dy += Math.sin(ship.angle) * 0.16;
+  }
+  ship.x += ship.dx;
+  ship.y += ship.dy;
+
+  if (ship.x < 0) ship.x = canvas.width;
+  if (ship.x > canvas.width) ship.x = 0;
+  if (ship.y < 0) ship.y = canvas.height;
+  if (ship.y > canvas.height) ship.y = 0;
+
+  // Shooting
+  if (keys[" "] && !keys._shooted) {
+    shoot();
+    keys._shooted = true;
+  }
+  if (!keys[" "]) keys._shooted = false;
+
+  // ─── Bullets ─────────────────────────────────────
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    b.x += b.dx;
+    b.y += b.dy;
+    if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+      bullets.splice(i, 1);
+      continue;
     }
-    difficulty = Math.min(difficulty, 4.5);
 
-    // ... (rest of update function remains the same as previous version - ship movement, bullets, enemies, spawning, etc.)
-    // For brevity I'm not repeating the entire 200+ lines here, but use the full update/draw from the previous message you have.
-    // If you lost it, let me know and I'll send the complete update() block again.
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const e = enemies[j];
+      if (checkCollision(b.x, b.y, b.size, e.x, e.y, e.size)) {
+        createParticles(e.x, e.y, "#f0f");
+        bullets.splice(i, 1);
 
-    hudScore.textContent = "Score: " + score;
-    updateHealthBar();
+        e.health--;
+        if (e.health <= 0) {
+          explosionSound();
+          if (e.type === "boulder") {
+            score += 10;
+            if (e.size > 22) {
+              setTimeout(() => createEnemy("boulder", 26 + Math.random()*4), 500);
+              setTimeout(() => createEnemy("boulder", 26 + Math.random()*4), 900);
+            } else if (e.size > 15) {
+              setTimeout(() => createEnemy("boulder", 16 + Math.random()*4), 500);
+              setTimeout(() => createEnemy("boulder", 16 + Math.random()*4), 900);
+            }
+          } else if (e.type === "alien") {
+            score += 20;
+          } else if (e.type !== "health") {
+            score += 10;
+          } else {
+            health = Math.min(maxHealth, health + 40);
+          }
+          enemies.splice(j, 1);
+        }
+        break;
+      }
+    }
+  }
+
+  // ─── Enemies ─────────────────────────────────────
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    if (e.type !== "health") {
+      e.x += e.dx * (1 + difficulty * 0.08);
+      e.y += e.dy * (1 + difficulty * 0.08);
+    }
+
+    if (e.x < 0) e.x = canvas.width;
+    if (e.x > canvas.width) e.x = 0;
+    if (e.y < 0) e.y = canvas.height;
+    if (e.y > canvas.height) e.y = 0;
+
+    if (checkCollision(ship.x, ship.y, ship.size/2, e.x, e.y, e.size)) {
+      if (e.type === "health") {
+        health = Math.min(maxHealth, health + 40);
+        enemies.splice(i, 1);
+      } else {
+        takeDamage(20);
+        createParticles(ship.x, ship.y, "#0f0", 15);
+        e.health = 0;
+      }
+    }
+  }
+
+  // Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.dx;
+    p.y += p.dy;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  // Spawning
+  const timeSinceLast = now - lastSpawnTime;
+  let spawnChance = elapsed < 120 ? 0.001 : 0.003 + difficulty * 0.011;
+  const maxEnemies = 5 + Math.floor(difficulty * 2.5);
+
+  if (enemies.length < maxEnemies && timeSinceLast > minSpawnDelay && Math.random() < spawnChance) {
+    const types = ["boulder"];
+    if (difficulty > 0.9) types.push("alien");
+    if (difficulty > 1.8) types.push("swarm");
+    const chosen = types[Math.floor(Math.random() * types.length)];
+    createEnemy(chosen);
+  }
+
+  // Health orbs
+  if (Math.random() < 0.0008 + (1.4 - difficulty) * 0.0012) {
+    createEnemy("health");
+  }
+
+  hudScore.textContent = "Score: " + score;
+  updateHealthBar();
 }
 
-function loop(){
-  if(gameState!=="playing") return;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+// ────────────────────────────────────────────────
+// DRAWING FUNCTIONS (must be before loop)
+// ────────────────────────────────────────────────
+function drawStars() {
+  ctx.fillStyle = "white";
+  stars.forEach(s => {
+    ctx.fillRect(s.x, s.y, s.size, s.size);
+    s.y += s.speed;
+    if (s.y > canvas.height) s.y = 0;
+  });
+}
+
+function drawShip() {
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  ctx.rotate(ship.angle);
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = "#0f0";
+  ctx.fillStyle = "#0f0";
+  ctx.beginPath();
+  ctx.moveTo(ship.size, 0);
+  ctx.lineTo(-ship.size/2, ship.size/2);
+  ctx.lineTo(-ship.size/2, -ship.size/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawEnemies() {
+  enemies.forEach(e => {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    if (e.type === "boulder" || e.type === "swarm") {
+      ctx.strokeStyle = "#f0f";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2;
+        const r = e.size * (0.7 + Math.random() * 0.3);
+        const px = Math.cos(ang) * r;
+        const py = Math.sin(ang) * r;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    } else if (e.type === "alien") {
+      ctx.fillStyle = "#f00";
+      ctx.beginPath();
+      ctx.arc(0, 0, e.size, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (e.type === "health") {
+      ctx.fillStyle = "#0f0";
+      ctx.beginPath();
+      ctx.arc(0, 0, e.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+}
+
+function drawBullets() {
+  ctx.fillStyle = "#0ff";
+  bullets.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life / 30;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawHUD() {
+  const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+  const min = Math.floor(elapsedSec / 60).toString().padStart(2, '0');
+  const sec = (elapsedSec % 60).toString().padStart(2, '0');
+  ctx.fillStyle = "white";
+  ctx.font = "20px Arial";
+  ctx.fillText(`Time: ${min}:${sec}`, 10, 30);
+}
+
+// ────────────────────────────────────────────────
+// Main game loop
+// ────────────────────────────────────────────────
+function loop() {
+  if (gameState !== "playing") return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawStars();
   update();
   drawShip();
@@ -410,7 +552,9 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
-// Init
+// ────────────────────────────────────────────────
+// Initialize
+// ────────────────────────────────────────────────
 renderLeaderboard();
 </script>
 </body>
