@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Slimey Fox Arcade - Octaroid</title>
+<title>Slimey Fox Arcade – Octaroid</title>
 <style>
 body {
   margin: 0;
@@ -14,7 +14,7 @@ body {
 }
 canvas {
   display: block;
-  margin: 20px auto;
+  margin: 10px auto;
   background: #000;
   border: 2px solid #333;
 }
@@ -58,16 +58,19 @@ const ship = {
   y: canvas.height/2,
   angle: 0,
   size: 20,
-  speed: 0,
   dx: 0,
   dy: 0,
-  color: "lime"
+  color: "lime",
+  lives: 5
 };
 
 let bullets = [];
 let asteroids = [];
 let score = 0;
 let gameOver = false;
+let startTime = Date.now();
+let difficultyTimer = 0;
+let spawnInterval = 5000; // spawn new asteroid every 5 sec initially
 
 // -----------------------------
 // Sounds - Web Audio API
@@ -120,20 +123,20 @@ function shoot() {
 // -----------------------------
 // Asteroids
 // -----------------------------
-function createAsteroid(x, y, size=40) {
+function createAsteroid(x, y, size=40, speedFactor=1) {
   asteroids.push({
     x: x,
     y: y,
-    dx: (Math.random()*2-1)*1.5,
-    dy: (Math.random()*2-1)*1.5,
+    dx: (Math.random()*2-1)*1.5*speedFactor,
+    dy: (Math.random()*2-1)*1.5*speedFactor,
     size: size
   });
 }
 
 function splitAsteroid(a) {
   if (a.size > 15) {
-    createAsteroid(a.x, a.y, a.size/2);
-    createAsteroid(a.x, a.y, a.size/2);
+    createAsteroid(a.x, a.y, a.size/2, 1.2);
+    createAsteroid(a.x, a.y, a.size/2, 1.2);
   }
 }
 
@@ -179,135 +182,4 @@ function checkHighScore() {
     if (name) {
       scores.push({name:name,score:score});
       scores.sort((a,b)=>b.score-a.score);
-      if (scores.length>10) scores.pop();
-      saveHighScores(scores);
-      updateLeaderboard();
-    }
-  }
-}
-
-// -----------------------------
-// Game Loop
-// -----------------------------
-function update() {
-  if(gameOver) return;
-
-  // Ship movement
-  if(keys["ArrowLeft"]) ship.angle -= 0.08;
-  if(keys["ArrowRight"]) ship.angle += 0.08;
-  if(keys["ArrowUp"]) {
-    ship.dx += Math.cos(ship.angle)*0.2;
-    ship.dy += Math.sin(ship.angle)*0.2;
-  }
-
-  ship.x += ship.dx;
-  ship.y += ship.dy;
-
-  // Screen wrap
-  if(ship.x<0) ship.x=canvas.width;
-  if(ship.x>canvas.width) ship.x=0;
-  if(ship.y<0) ship.y=canvas.height;
-  if(ship.y>canvas.height) ship.y=0;
-
-  // Shoot
-  if(keys[" "]) { if(!keys._shooted){shoot(); keys._shooted=true;} } 
-  else { keys._shooted=false; }
-
-  // Update bullets
-  bullets.forEach((b,i)=>{
-    b.x += b.dx; b.y += b.dy;
-    // remove offscreen
-    if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) bullets.splice(i,1);
-    // Check collisions
-    asteroids.forEach((a,j)=>{
-      if(checkCollision(b.x,b.y, b.size, a.x,a.y,a.size)) {
-        beep(120,0.1,"sawtooth",0.2); // explosion sound
-        bullets.splice(i,1);
-        splitAsteroid(a);
-        asteroids.splice(j,1);
-        score += 10;
-      }
-    });
-  });
-
-  // Check collisions with ship
-  asteroids.forEach(a=>{
-    if(checkCollision(ship.x,ship.y,ship.size/2, a.x,a.y,a.size)) {
-      beep(60,0.5,"triangle",0.4); // death sound
-      gameOver = true;
-      checkHighScore();
-      alert("Game Over! Score: "+score);
-      location.reload();
-    }
-  });
-
-  // Update asteroids
-  asteroids.forEach(a=>{
-    a.x += a.dx; a.y += a.dy;
-    if(a.x<0) a.x=canvas.width;
-    if(a.x>canvas.width) a.x=0;
-    if(a.y<0) a.y=canvas.height;
-    if(a.y>canvas.height) a.y=0;
-  });
-}
-
-// -----------------------------
-// Draw
-// -----------------------------
-function drawShip(){
-  ctx.save();
-  ctx.translate(ship.x,ship.y);
-  ctx.rotate(ship.angle);
-  ctx.fillStyle = ship.color;
-  ctx.beginPath();
-  ctx.moveTo(ship.size,0);
-  ctx.lineTo(-ship.size/2,ship.size/2);
-  ctx.lineTo(-ship.size/2,-ship.size/2);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawAsteroids(){
-  ctx.strokeStyle = "#f0f";
-  ctx.lineWidth = 2;
-  asteroids.forEach(a=>{
-    ctx.beginPath();
-    ctx.arc(a.x,a.y,a.size,0,Math.PI*2);
-    ctx.stroke();
-  });
-}
-
-function drawBullets(){
-  ctx.fillStyle = "#0ff";
-  bullets.forEach(b=>{
-    ctx.beginPath();
-    ctx.arc(b.x,b.y,b.size,0,Math.PI*2);
-    ctx.fill();
-  });
-}
-
-function drawScore(){
-  ctx.fillStyle="white";
-  ctx.font="20px Arial";
-  ctx.fillText("Score: "+score, 10, 30);
-}
-
-function loop(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  update();
-  drawShip();
-  drawAsteroids();
-  drawBullets();
-  drawScore();
-  requestAnimationFrame(loop);
-}
-
-// Initialize
-updateLeaderboard();
-loop();
-
-</script>
-
-</body>
-</html>
+      if (scores.length>
