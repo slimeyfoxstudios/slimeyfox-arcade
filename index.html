@@ -138,7 +138,6 @@ let score = 0;
 let health = 100;
 const maxHealth = 100;
 let startTime = 0;
-let difficultyTimer = 0;
 let gameState = "menu";
 
 // -----------------------------
@@ -320,7 +319,6 @@ function resetGame(){
     score = 0;
     health = maxHealth;
     startTime = Date.now();
-    difficultyTimer = 0;
     initEnemies();
     updateHealthBar();
 }
@@ -331,16 +329,30 @@ function resetGame(){
 function update(){
     if(gameState!=="playing") return;
     const elapsed=(Date.now()-startTime)/1000;
-    difficultyTimer+=1/60;
 
-    if(difficultyTimer>15){
-        enemies.forEach(e=>{e.dx*=1.05;e.dy*=1.05;});
-        difficultyTimer=0;
-        createEnemy(["boulder","alien","swarm"][Math.floor(Math.random()*3)]);
-        health+=20; if(health>maxHealth) health=maxHealth;
-        updateHealthBar();
+    // -----------------------------
+    // Difficulty factor ramps up only after 60 seconds
+    // -----------------------------
+    let difficultyFactor = 0;
+    if(elapsed > 60){
+        difficultyFactor = Math.min((elapsed - 60)/180, 1); // max 1 over next 3 minutes
     }
 
+    // Spawn new enemies based on difficultyFactor
+    if(Math.random() < 0.002 + 0.008*difficultyFactor){
+        const types = ["boulder","alien","swarm"];
+        createEnemy(types[Math.floor(Math.random()*types.length)]);
+    }
+
+    // Slightly increase speed of existing enemies over time
+    enemies.forEach(e => {
+        e.dx *= 1 + 0.01*difficultyFactor;
+        e.dy *= 1 + 0.01*difficultyFactor;
+    });
+
+    // -----------------------------
+    // Controls
+    // -----------------------------
     if(keys["ArrowLeft"]) ship.angle-=0.08;
     if(keys["ArrowRight"]) ship.angle+=0.08;
     if(keys["ArrowUp"]){ship.dx+=Math.cos(ship.angle)*0.2;ship.dy+=Math.sin(ship.angle)*0.2;}
@@ -496,14 +508,4 @@ function loop(){
   drawShip();
   drawEnemies();
   drawBullets();
-  drawParticles();
-  drawHUD();
-  requestAnimationFrame(loop);
-}
-
-// Initialize
-renderLeaderboard();
-</script>
-
-</body>
-</html>
+  drawParticles
