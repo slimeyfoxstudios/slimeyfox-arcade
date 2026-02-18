@@ -31,7 +31,7 @@ body {
   padding-left: 20px;
   text-align: left;
 }
-#leaderboard button {
+#howToPlay {
   margin-top:10px;
   width:100%;
   padding:8px;
@@ -98,49 +98,6 @@ canvas {
   border-radius:8px;
   cursor:pointer;
 }
-#guideOverlay {
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  background: rgba(0,0,0,0.9);
-  color:#0ff;
-  display:none;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  font-family: Arial;
-  font-size:20px;
-  z-index:20;
-}
-#guideOverlay h2 {
-  margin-bottom: 20px;
-}
-#guideOverlay div.enemy {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  margin:10px;
-  font-size:16px;
-}
-#guideOverlay div.enemy svg {
-  margin-bottom:5px;
-}
-#guideOverlay button {
-  margin-top:20px;
-  padding:10px 20px;
-  font-size:18px;
-  color:#0ff;
-  background:#111;
-  border:2px solid #0ff;
-  border-radius:5px;
-  cursor:pointer;
-}
-#guideEnemies {
-  display:flex;
-  gap:30px;
-  flex-wrap: wrap;
-  justify-content:center;
-}
 </style>
 </head>
 <body>
@@ -149,7 +106,6 @@ canvas {
   <h3>Top 10 High Scores</h3>
   <ol id="scoresList"></ol>
   <button id="howToPlay">How to Play</button>
-  <button id="enemyGuide">Enemy Guide</button>
 </div>
 
 <div id="gameContainer">
@@ -163,32 +119,6 @@ canvas {
   <div id="overlay">
     <div id="overlayText">SLIMEY BLASTER</div>
     <button id="startButton">START GAME</button>
-  </div>
-  <div id="guideOverlay">
-    <h2>Enemy Guide</h2>
-    <div id="guideEnemies">
-      <div class="enemy">
-        <svg width="40" height="40"><circle cx="20" cy="20" r="18" stroke="#f0f" stroke-width="2" fill="none"/></svg>
-        <div>Boulder - 10 pts</div>
-      </div>
-      <div class="enemy">
-        <svg width="40" height="40"><circle cx="20" cy="20" r="18" fill="red"/></svg>
-        <div>Alien Drone - 20 pts</div>
-      </div>
-      <div class="enemy">
-        <svg width="40" height="40"><circle cx="20" cy="20" r="8" stroke="#f0f" stroke-width="2" fill="none"/></svg>
-        <div>Mini Swarm - 10 pts</div>
-      </div>
-      <div class="enemy">
-        <svg width="40" height="40"><circle cx="20" cy="20" r="12" fill="lime"/></svg>
-        <div>Health Orb - +20 HP</div>
-      </div>
-      <div class="enemy">
-        <svg width="40" height="40"><polygon points="20,0 30,7 35,20 30,33 20,40 10,33 5,20 10,7" fill="black" stroke="red" stroke-width="2"/></svg>
-        <div>Flashing Octacon - 50 pts</div>
-      </div>
-    </div>
-    <button id="closeGuide">Close</button>
   </div>
 </div>
 
@@ -208,6 +138,7 @@ let score = 0;
 let health = 100;
 const maxHealth = 100;
 let startTime = 0;
+let difficultyTimer = 0;
 let gameState = "menu";
 
 // -----------------------------
@@ -254,8 +185,6 @@ function createEnemy(type){
   if(type==="boulder") enemies.push({x,y,dx:(Math.random()*2-1)*1.5,dy:(Math.random()*2-1)*1.5,size:40,type:"boulder",health:1});
   if(type==="alien") enemies.push({x,y,dx:(Math.random()*2-1)*2,dy:(Math.random()*2-1)*2,size:25,type:"alien",health:2});
   if(type==="swarm") enemies.push({x,y,dx:(Math.random()*2-1)*3,dy:(Math.random()*2-1)*3,size:10,type:"swarm",health:1});
-  if(type==="octacon") enemies.push({x,y,dx:(Math.random()*2-1)*2.5,dy:(Math.random()*2-1)*2.5,size:30,type:"octacon",health:3});
-  if(type==="health") enemies.push({x,y,dx:0,dy:0,size:20,type:"health",health:1});
 }
 
 function initEnemies(){
@@ -340,7 +269,7 @@ function checkHighScore(){
 }
 
 // -----------------------------
-// How to Play + Enemy Guide Overlay
+// How to Play Button
 // -----------------------------
 document.getElementById("howToPlay").addEventListener("click", ()=>{
   alert(
@@ -355,14 +284,6 @@ document.getElementById("howToPlay").addEventListener("click", ()=>{
 - Survive as long as possible to score points
 - Try to reach the top 10 leaderboard!`
   );
-});
-
-const guideOverlay = document.getElementById("guideOverlay");
-document.getElementById("enemyGuide").addEventListener("click", ()=>{
-  guideOverlay.style.display = "flex";
-});
-document.getElementById("closeGuide").addEventListener("click", ()=>{
-  guideOverlay.style.display = "none";
 });
 
 // -----------------------------
@@ -399,6 +320,7 @@ function resetGame(){
     score = 0;
     health = maxHealth;
     startTime = Date.now();
+    difficultyTimer = 0;
     initEnemies();
     updateHealthBar();
 }
@@ -409,27 +331,16 @@ function resetGame(){
 function update(){
     if(gameState!=="playing") return;
     const elapsed=(Date.now()-startTime)/1000;
+    difficultyTimer+=1/60;
 
-    // Linear difficulty factor
-    const difficultyFactor = Math.min(elapsed/120, 1);
-
-    // Enemy spawn logic
-    if(Math.random() < 0.002 + 0.008*difficultyFactor){
-        const types = ["boulder","alien","swarm"];
-        createEnemy(types[Math.floor(Math.random()*types.length)]);
+    if(difficultyTimer>15){
+        enemies.forEach(e=>{e.dx*=1.05;e.dy*=1.05;});
+        difficultyTimer=0;
+        createEnemy(["boulder","alien","swarm"][Math.floor(Math.random()*3)]);
+        health+=20; if(health>maxHealth) health=maxHealth;
+        updateHealthBar();
     }
 
-    // Flashing Octacon spawns after 90s
-    if(elapsed>90 && Math.random()<0.001 && !enemies.some(e=>e.type==="octacon")){
-        createEnemy("octacon");
-    }
-
-    // Occasionally spawn bonus health
-    if(Math.random()<0.001+0.004*difficultyFactor && !enemies.some(e=>e.type==="health")){
-        createEnemy("health");
-    }
-
-    // Ship movement
     if(keys["ArrowLeft"]) ship.angle-=0.08;
     if(keys["ArrowRight"]) ship.angle+=0.08;
     if(keys["ArrowUp"]){ship.dx+=Math.cos(ship.angle)*0.2;ship.dy+=Math.sin(ship.angle)*0.2;}
@@ -443,7 +354,6 @@ function update(){
     if(keys[" "] && !keys._shooted){shoot(); keys._shooted=true;} 
     if(!keys[" "]) keys._shooted=false;
 
-    // Bullets
     bullets.forEach((b,i)=>{
         b.x+=b.dx; b.y+=b.dy;
         if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) bullets.splice(i,1);
@@ -455,18 +365,145 @@ function update(){
                 if(e.health<=0){
                     explosionSound();
                     if(e.type==="boulder" && e.size>15){createEnemy("boulder"); createEnemy("boulder");}
-                    if(e.type==="alien") score+=20; else if(e.type==="octacon") score+=50; else score+=10;
+                    if(e.type==="alien") score+=20; else score+=10;
                     enemies.splice(j,1);
                 }
             }
         });
     });
 
-    // Enemies movement & collision
     enemies.forEach(e=>{
         if(checkCollision(ship.x,ship.y,ship.size/2,e.x,e.y,e.size)){
-            if(e.type!=="health") takeDamage(20);
+            takeDamage(20);
             createParticles(ship.x,ship.y,"#0f0",15);
-            if(e.type!=="health") e.health=0;
+            e.health=0;
         }
-        e.x+=e.dx*(1+difficultyFactor
+        e.x+=e.dx; e.y+=e.dy;
+        if(e.x<0) e.x=canvas.width;
+        if(e.x>canvas.width) e.x=0;
+        if(e.y<0) e.y=canvas.height;
+        if(e.y>canvas.height) e.y=0;
+    });
+
+    particles.forEach((p,i)=>{p.x+=p.dx;p.y+=p.dy;p.life--; if(p.life<=0) particles.splice(i,1);});
+
+    // Occasionally spawn bonus health
+    if(Math.random()<0.001 && !enemies.some(e=>e.type==="health")){
+        enemies.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,dx:0,dy:0,size:20,type:"health",health:1});
+    }
+
+    hudScore.textContent="Score: "+score;
+    updateHealthBar();
+}
+
+function drawShip(){
+  ctx.save();
+  ctx.translate(ship.x,ship.y);
+  ctx.rotate(ship.angle);
+  ctx.shadowBlur=15; ctx.shadowColor="#0f0";
+  ctx.fillStyle="#0f0";
+  ctx.beginPath();
+  ctx.moveTo(ship.size,0);
+  ctx.lineTo(-ship.size/2,ship.size/2);
+  ctx.lineTo(-ship.size/2,-ship.size/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.restore();
+}
+
+function drawEnemies(){
+  enemies.forEach(e=>{
+    if(e.type==="boulder" || e.type==="swarm"){
+      ctx.save();
+      ctx.translate(e.x,e.y);
+      ctx.strokeStyle="#f0f";
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      for(let i=0;i<8;i++){
+        const angle=(i/8)*Math.PI*2;
+        const radius=e.size*(0.7+Math.random()*0.3);
+        const px=Math.cos(angle)*radius;
+        const py=Math.sin(angle)*radius;
+        if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.closePath(); ctx.stroke(); ctx.restore();
+    }
+    if(e.type==="alien"){
+      ctx.save();
+      ctx.translate(e.x,e.y);
+      ctx.fillStyle="#f00";
+      ctx.beginPath();
+      ctx.arc(0,0,e.size,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+    if(e.type==="health"){
+      ctx.save();
+      ctx.translate(e.x,e.y);
+      ctx.fillStyle="#0f0";
+      ctx.beginPath();
+      ctx.arc(0,0,e.size,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  });
+}
+
+function drawBullets(){
+  ctx.fillStyle="#0ff";
+  bullets.forEach(b=>{
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.size,0,Math.PI*2);
+    ctx.fill();
+  });
+}
+
+function drawParticles(){
+  particles.forEach(p=>{
+    ctx.fillStyle=p.color;
+    ctx.globalAlpha=p.life/30;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha=1;
+  });
+}
+
+function drawHUD(){
+  const elapsedSec=Math.floor((Date.now()-startTime)/1000);
+  const min=Math.floor(elapsedSec/60).toString().padStart(2,'0');
+  const sec=(elapsedSec%60).toString().padStart(2,'0');
+  ctx.fillStyle="white";
+  ctx.font="20px Arial";
+  ctx.fillText(`Time: ${min}:${sec}`, 10, 30);
+}
+
+function drawStars(){
+  ctx.fillStyle="white";
+  stars.forEach(s=>{
+    ctx.fillRect(s.x,s.y,s.size,s.size);
+    s.y+=s.speed;
+    if(s.y>canvas.height) s.y=0;
+  });
+}
+
+function loop(){
+  if(gameState!=="playing") return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawStars();
+  update();
+  drawShip();
+  drawEnemies();
+  drawBullets();
+  drawParticles();
+  drawHUD();
+  requestAnimationFrame(loop);
+}
+
+// Initialize
+renderLeaderboard();
+</script>
+
+</body>
+</html>
