@@ -7,7 +7,7 @@
 body {
   margin: 0;
   background: black;
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   color: white;
   display: flex;
   flex-direction: row;
@@ -22,15 +22,8 @@ body {
   border-radius: 8px;
   margin-right: 10px;
 }
-#leaderboard h3 {
-  margin: 0 0 5px 0;
-  font-size: 18px;
-  color: #0ff;
-}
-#leaderboard ol {
-  padding-left: 20px;
-  text-align: left;
-}
+#leaderboard h3 { margin: 0 0 5px 0; font-size: 18px; color: #0ff; }
+#leaderboard ol { padding-left: 20px; text-align: left; }
 #leaderboard button {
   margin-top:10px;
   width:100%;
@@ -42,14 +35,8 @@ body {
   border-radius:5px;
   cursor:pointer;
 }
-#gameContainer {
-  position: relative;
-}
-canvas {
-  display: block;
-  background: #000;
-  border: 2px solid #333;
-}
+#gameContainer { position: relative; }
+canvas { display: block; background: #000; border: 2px solid #333; }
 #hud {
   position: absolute;
   top: 10px;
@@ -112,9 +99,7 @@ canvas {
   font-size:20px;
   z-index:20;
 }
-#guideOverlay h2 {
-  margin-bottom: 20px;
-}
+#guideOverlay h2 { margin-bottom: 20px; }
 #guideOverlay div.enemy {
   display:flex;
   flex-direction:column;
@@ -122,9 +107,7 @@ canvas {
   margin:10px;
   font-size:16px;
 }
-#guideOverlay div.enemy svg {
-  margin-bottom:5px;
-}
+#guideOverlay div.enemy svg { margin-bottom:5px; }
 #guideOverlay button {
   margin-top:20px;
   padding:10px 20px;
@@ -135,12 +118,7 @@ canvas {
   border-radius:5px;
   cursor:pointer;
 }
-#guideEnemies {
-  display:flex;
-  gap:30px;
-  flex-wrap: wrap;
-  justify-content:center;
-}
+#guideEnemies { display:flex; gap:30px; flex-wrap: wrap; justify-content:center; }
 </style>
 </head>
 <body>
@@ -214,9 +192,7 @@ let gameState = "menu";
 // Background stars
 // -----------------------------
 const stars = [];
-for(let i=0;i<150;i++){
-  stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,size:Math.random()*2+1,speed:Math.random()*0.3+0.1});
-}
+for(let i=0;i<150;i++){stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,size:Math.random()*2+1,speed:Math.random()*0.3+0.1});}
 
 // -----------------------------
 // Sounds
@@ -240,107 +216,51 @@ document.addEventListener("keyup",e=>keys[e.key]=false);
 // -----------------------------
 // Bullets
 // -----------------------------
-function shoot(){
-  bullets.push({x:ship.x+Math.cos(ship.angle)*ship.size/2,y:ship.y+Math.sin(ship.angle)*ship.size/2,dx:Math.cos(ship.angle)*8,dy:Math.sin(ship.angle)*8,size:4});
-  laserSound();
-}
+function shoot(){bullets.push({x:ship.x+Math.cos(ship.angle)*ship.size/2,y:ship.y+Math.sin(ship.angle)*ship.size/2,dx:Math.cos(ship.angle)*8,dy:Math.sin(ship.angle)*8,size:4});laserSound();}
 
 // -----------------------------
 // Enemies
 // -----------------------------
 function createEnemy(type){
-  const x = Math.random()*canvas.width;
-  const y = Math.random()*canvas.height;
+  const x=Math.random()*canvas.width;
+  const y=Math.random()*canvas.height;
   if(type==="boulder") enemies.push({x,y,dx:(Math.random()*2-1)*1.5,dy:(Math.random()*2-1)*1.5,size:40,type:"boulder",health:1});
   if(type==="alien") enemies.push({x,y,dx:(Math.random()*2-1)*2,dy:(Math.random()*2-1)*2,size:25,type:"alien",health:2});
   if(type==="swarm") enemies.push({x,y,dx:(Math.random()*2-1)*3,dy:(Math.random()*2-1)*3,size:10,type:"swarm",health:1});
   if(type==="octacon") enemies.push({x,y,dx:(Math.random()*2-1)*2.5,dy:(Math.random()*2-1)*2.5,size:30,type:"octacon",health:3});
   if(type==="health") enemies.push({x,y,dx:0,dy:0,size:20,type:"health",health:1});
 }
-
-function initEnemies(){
-  enemies = [];
-  for(let i=0;i<5;i++) createEnemy("boulder");
-  for(let i=0;i<2;i++) createEnemy("alien");
-  for(let i=0;i<3;i++) createEnemy("swarm");
-}
+function initEnemies(){enemies=[];for(let i=0;i<5;i++) createEnemy("boulder");for(let i=0;i<2;i++) createEnemy("alien");for(let i=0;i<3;i++) createEnemy("swarm");}
 
 // -----------------------------
 // Particles
 // -----------------------------
-function createParticles(x,y,color,count=10){
-  for(let i=0;i<count;i++){
-    particles.push({x,y,dx:(Math.random()*4-2),dy:(Math.random()*4-2),size:Math.random()*3+1,life:30,color});
-  }
-}
+function createParticles(x,y,color,count=10){for(let i=0;i<count;i++){particles.push({x,y,dx:(Math.random()*4-2),dy:(Math.random()*4-2),size:Math.random()*3+1,life:30,color});}}
 
 // -----------------------------
 // Collision
 // -----------------------------
 function checkCollision(ax,ay,ar,bx,by,br){return Math.hypot(ax-bx,ay-by)<ar+br;}
-function takeDamage(amount){
-    health-=amount;
-    if(health<0) health=0;
-    updateHealthBar();
-    if(health===0){
-        deathSound();
-        gameOverSequence();
-    }
-}
+function takeDamage(amount){health-=amount;if(health<0) health=0;updateHealthBar();if(health===0){deathSound();gameOverSequence();}}
 
 // -----------------------------
 // Health bar
 // -----------------------------
-function updateHealthBar(){
-    const percent = Math.max(0, health) / maxHealth * 100;
-    healthBar.style.height = percent + "%";
-    if(percent > 50) healthBar.style.background = "green";
-    else if(percent > 25) healthBar.style.background = "yellow";
-    else healthBar.style.background = "red";
-}
+function updateHealthBar(){const percent=Math.max(0,health)/maxHealth*100;healthBar.style.height=percent+"%";healthBar.style.background=(percent>50?"green":percent>25?"yellow":"red");}
 
 // -----------------------------
-// High Score with profanity filter
+// High Score
 // -----------------------------
-const banned = [
-  "ass","bastard","bitch","bollocks","bugger","childfuck","cocksucker","cunt",
-  "dick","dildo","dyke","fag","faggot","fuck","fucker","goddamn","hell",
-  "homo","jerk","kike","motherfucker","nigger","piss","prick","pussy","shit",
-  "slut","spastic","twat","whore"
-];
-function sanitizeName(name){
-    let clean = name.substring(0,10);
-    banned.forEach(word=>{
-        const regex = new RegExp(word,"gi");
-        clean = clean.replace(regex, "*".repeat(word.length));
-    });
-    return clean;
-}
+const banned = ["ass","bastard","bitch","bollocks","bugger","childfuck","cocksucker","cunt","dick","dildo","dyke","fag","faggot","fuck","fucker","goddamn","hell","homo","jerk","kike","motherfucker","nigger","piss","prick","pussy","shit","slut","spastic","twat","whore"];
+function sanitizeName(name){let clean=name.substring(0,10);banned.forEach(w=>{const r=new RegExp(w,"gi");clean=clean.replace(r,"*".repeat(w.length));});return clean;}
 function getHighScores(){return JSON.parse(localStorage.getItem("highScores")||"[]");}
 function saveHighScores(scores){localStorage.setItem("highScores",JSON.stringify(scores));}
-function renderLeaderboard(){
-  const scores=getHighScores();
-  const list=document.getElementById("scoresList");
-  list.innerHTML="";
-  scores.forEach(s=>{const li=document.createElement("li");li.textContent=`${s.name} - ${s.score}`;list.appendChild(li);});
-}
-function checkHighScore(){
-  const scores=getHighScores();
-  if(scores.length<10||score>scores[scores.length-1].score){
-    let name=prompt("New High Score! Enter name (max 10 chars)","Player");
-    if(name){
-      name=sanitizeName(name);
-      scores.push({name:name,score:score});
-      scores.sort((a,b)=>b.score-a.score);
-      if(scores.length>10) scores.pop();
-      saveHighScores(scores);
-      renderLeaderboard();
-    }
-  }
-}
+function renderLeaderboard(){const scores=getHighScores();const list=document.getElementById("scoresList");list.innerHTML="";scores.forEach(s=>{const li=document.createElement("li");li.textContent=`${s.name} - ${s.score}`;list.appendChild(li);});}
+function checkHighScore(){const scores=getHighScores();if(scores.length<10||score>scores[scores.length-1].score){let name=prompt("New High Score! Enter name (max 10 chars)","Player");if(name){name=sanitizeName(name);scores.push({name:name,score:score});scores.sort((a,b)=>b.score-a.score);if(scores.length>10)scores.pop();saveHighScores(scores);renderLeaderboard();}}}
+document.addEventListener("DOMContentLoaded",()=>renderLeaderboard());
 
 // -----------------------------
-// How to Play + Enemy Guide Overlay
+// How to Play + Enemy Guide
 // -----------------------------
 document.getElementById("howToPlay").addEventListener("click", ()=>{
   alert(
@@ -356,121 +276,100 @@ document.getElementById("howToPlay").addEventListener("click", ()=>{
 - Try to reach the top 10 leaderboard!`
   );
 });
-
-const guideOverlay = document.getElementById("guideOverlay");
-document.getElementById("enemyGuide").addEventListener("click", ()=>{
-  guideOverlay.style.display = "flex";
-});
-document.getElementById("closeGuide").addEventListener("click", ()=>{
-  guideOverlay.style.display = "none";
-});
+const guideOverlay=document.getElementById("guideOverlay");
+document.getElementById("enemyGuide").addEventListener("click",()=>{guideOverlay.style.display="flex";});
+document.getElementById("closeGuide").addEventListener("click",()=>{guideOverlay.style.display="none";});
 
 // -----------------------------
 // Overlay / Start & Game Over
 // -----------------------------
-const overlay = document.getElementById("overlay");
-const overlayText = document.getElementById("overlayText");
-const startButton = document.getElementById("startButton");
-
-startButton.addEventListener("click", ()=>{
-    if(gameState==="menu" || gameState==="gameover"){
-        gameState="playing";
-        overlay.style.display="none";
-        resetGame();
-        loop();
-    }
+const overlay=document.getElementById("overlay");
+const overlayText=document.getElementById("overlayText");
+const startButton=document.getElementById("startButton");
+startButton.addEventListener("click",()=>{
+  if(gameState==="menu"||gameState==="gameover"){
+    gameState="playing";
+    overlay.style.display="none";
+    resetGame();
+    loop();
+  }
 });
-
 function gameOverSequence(){
-    gameState="gameover";
-    overlayText.textContent="GAME OVER";
-    startButton.textContent="PLAY AGAIN";
-    overlay.style.display="flex";
-    checkHighScore();
+  gameState="gameover";
+  overlayText.textContent="GAME OVER";
+  startButton.textContent="PLAY AGAIN";
+  overlay.style.display="flex";
+  checkHighScore();
 }
 
 // -----------------------------
 // Reset Game
 // -----------------------------
 function resetGame(){
-    ship = {x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0};
-    bullets = [];
-    particles = [];
-    score = 0;
-    health = maxHealth;
-    startTime = Date.now();
-    initEnemies();
-    updateHealthBar();
+  ship={x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0};
+  bullets=[];particles=[];score=0;health=maxHealth;startTime=Date.now();
+  initEnemies();updateHealthBar();
 }
 
 // -----------------------------
 // Game Loop
 // -----------------------------
-function update(){
-    if(gameState!=="playing") return;
-    const elapsed=(Date.now()-startTime)/1000;
+function loop(){
+  requestAnimationFrame(loop);
+  if(gameState!=="playing") return;
+  const elapsed=(Date.now()-startTime)/1000;
+  const difficultyFactor=Math.min(elapsed/120,1);
 
-    // Linear difficulty factor
-    const difficultyFactor = Math.min(elapsed/120, 1);
+  // Spawn enemies
+  if(Math.random()<0.002+0.008*difficultyFactor){const types=["boulder","alien","swarm"];createEnemy(types[Math.floor(Math.random()*types.length)]);}
+  if(elapsed>90 && Math.random()<0.001 && !enemies.some(e=>e.type==="octacon")) createEnemy("octacon");
+  if(Math.random()<0.001+0.004*difficultyFactor && !enemies.some(e=>e.type==="health")) createEnemy("health");
 
-    // Enemy spawn logic
-    if(Math.random() < 0.002 + 0.008*difficultyFactor){
-        const types = ["boulder","alien","swarm"];
-        createEnemy(types[Math.floor(Math.random()*types.length)]);
-    }
+  // Move ship
+  if(keys["ArrowLeft"]) ship.angle-=0.08;if(keys["ArrowRight"]) ship.angle+=0.08;
+  if(keys["ArrowUp"]){ship.dx+=Math.cos(ship.angle)*0.2;ship.dy+=Math.sin(ship.angle)*0.2;}
+  ship.x+=ship.dx;ship.y+=ship.dy;
+  if(ship.x<0) ship.x=canvas.width;if(ship.x>canvas.width) ship.x=0;
+  if(ship.y<0) ship.y=canvas.height;if(ship.y>canvas.height) ship.y=0;
 
-    // Flashing Octacon spawns after 90s
-    if(elapsed>90 && Math.random()<0.001 && !enemies.some(e=>e.type==="octacon")){
-        createEnemy("octacon");
-    }
+  if(keys[" "]&&!keys._shooted){shoot();keys._shooted=true;}
+  if(!keys[" "]) keys._shooted=false;
 
-    // Occasionally spawn bonus health
-    if(Math.random()<0.001+0.004*difficultyFactor && !enemies.some(e=>e.type==="health")){
-        createEnemy("health");
-    }
-
-    // Ship movement
-    if(keys["ArrowLeft"]) ship.angle-=0.08;
-    if(keys["ArrowRight"]) ship.angle+=0.08;
-    if(keys["ArrowUp"]){ship.dx+=Math.cos(ship.angle)*0.2;ship.dy+=Math.sin(ship.angle)*0.2;}
-
-    ship.x+=ship.dx; ship.y+=ship.dy;
-    if(ship.x<0) ship.x=canvas.width;
-    if(ship.x>canvas.width) ship.x=0;
-    if(ship.y<0) ship.y=canvas.height;
-    if(ship.y>canvas.height) ship.y=0;
-
-    if(keys[" "] && !keys._shooted){shoot(); keys._shooted=true;} 
-    if(!keys[" "]) keys._shooted=false;
-
-    // Bullets
-    bullets.forEach((b,i)=>{
-        b.x+=b.dx; b.y+=b.dy;
-        if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) bullets.splice(i,1);
-        enemies.forEach((e,j)=>{
-            if(checkCollision(b.x,b.y,b.size,e.x,e.y,e.size)){
-                createParticles(e.x,e.y,"#f0f");
-                bullets.splice(i,1);
-                e.health--;
-                if(e.health<=0){
-                    explosionSound();
-                    if(e.type==="boulder" && e.size>15){createEnemy("boulder"); createEnemy("boulder");}
-                    if(e.type==="alien") score+=20; else if(e.type==="octacon") score+=50; else score+=10;
-                    enemies.splice(j,1);
-                }
-            }
-        });
-    });
-
-    // Enemies movement & collision
-    enemies.forEach(e=>{
-        if(checkCollision(ship.x,ship.y,ship.size/2,e.x,e.y,e.size)){
-            if(e.type!=="health") takeDamage(20);
-            createParticles(ship.x,ship.y,"#0f0",15);
-            if(e.type!=="health") e.health=0;
+  // Update bullets
+  bullets.forEach((b,i)=>{
+    b.x+=b.dx;b.y+=b.dy;
+    if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height){bullets.splice(i,1);}
+    enemies.forEach((e,j)=>{
+      if(checkCollision(b.x,b.y,b.size,e.x,e.y,e.size)){
+        createParticles(e.x,e.y,"#f0f");
+        bullets.splice(i,1);e.health--;
+        if(e.health<=0){
+          explosionSound();
+          if(e.type==="boulder"&&e.size>15){createEnemy("boulder");createEnemy("boulder");}
+          if(e.type==="alien") score+=20;
+          else if(e.type==="octacon") score+=50;
+          else score+=10;
+          enemies.splice(j,1);
         }
-        e.x+=e.dx*(1+difficultyFactor
-// Render leaderboard on page load
-document.addEventListener("DOMContentLoaded", ()=>{
-    renderLeaderboard();
-});
+      }
+    });
+  });
+
+  // Update enemies
+  enemies.forEach((e,i)=>{
+    if(e.type!=="health"&&checkCollision(ship.x,ship.y,ship.size/2,e.x,e.y,e.size)){
+      takeDamage(20);
+      createParticles(ship.x,ship.y,"#0f0",15);
+      e.health=0;
+    }
+    e.x+=e.dx*(1+difficultyFactor);
+    e.y+=e.dy*(1+difficultyFactor);
+    if(e.x<0) e.x=canvas.width;if(e.x>canvas.width) e.x=0;
+    if(e.y<0) e.y=canvas.height;if(e.y>canvas.height) e.y=0;
+  });
+
+  // Particles
+  particles.forEach((p,i)=>{p.x+=p.dx;p.y+=p.dy;p.life--; if(p.life<=0) particles.splice(i,1);});
+
+  // Draw
+  ctx.clearRect(0
