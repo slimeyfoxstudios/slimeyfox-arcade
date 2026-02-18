@@ -138,7 +138,7 @@ let health = 100;
 const maxHealth = 100;
 let startTime = 0;
 let gameState = "menu";
-let difficulty = 0.35;           // starting value – quite easy
+let difficulty = 0.35;
 
 // -----------------------------
 // Background stars
@@ -149,7 +149,7 @@ for(let i=0;i<150;i++){
 }
 
 // -----------------------------
-// Sounds (unchanged)
+// Sounds
 // -----------------------------
 const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function laserSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="square";o.frequency.setValueAtTime(800,AudioCtx.currentTime);g.gain.value=0.15;o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.05);}
@@ -176,12 +176,53 @@ function shoot(){
 }
 
 // -----------------------------
+// Helper: spawn position near edges (not near player)
+// -----------------------------
+function getEdgeSpawnPosition() {
+  const margin = 80;           // distance from edge
+  const safeZone = 120;        // minimum distance from player to avoid instant hits
+  let x, y;
+
+  // Pick one of four sides
+  const side = Math.floor(Math.random() * 4);
+
+  if (side === 0) { // top
+    x = Math.random() * canvas.width;
+    y = margin + Math.random() * 40;
+  } else if (side === 1) { // right
+    x = canvas.width - margin - Math.random() * 40;
+    y = Math.random() * canvas.height;
+  } else if (side === 2) { // bottom
+    x = Math.random() * canvas.width;
+    y = canvas.height - margin - Math.random() * 40;
+  } else { // left
+    x = margin + Math.random() * 40;
+    y = Math.random() * canvas.height;
+  }
+
+  // If too close to player → push slightly further out
+  const dist = Math.hypot(x - ship.x, y - ship.y);
+  if (dist < safeZone) {
+    const angle = Math.atan2(y - ship.y, x - ship.x);
+    x = ship.x + Math.cos(angle) * safeZone;
+    y = ship.y + Math.sin(angle) * safeZone;
+    // clamp to screen
+    x = Math.max(margin, Math.min(canvas.width - margin, x));
+    y = Math.max(margin, Math.min(canvas.height - margin, y));
+  }
+
+  return {x, y};
+}
+
+// -----------------------------
 // Enemies
 // -----------------------------
 function createEnemy(type){
-  const x = Math.random()*canvas.width;
-  const y = Math.random()*canvas.height;
-  const baseSpeed = 1.2 + difficulty * 2.8;           // 1.2 → ~4.0 over time
+  const pos = getEdgeSpawnPosition();
+  const x = pos.x;
+  const y = pos.y;
+
+  const baseSpeed = 1.2 + difficulty * 2.8;
 
   if(type==="boulder") enemies.push({x,y,dx:(Math.random()*2-1)*baseSpeed*0.7, dy:(Math.random()*2-1)*baseSpeed*0.7, size:40, type:"boulder", health:1});
   if(type==="alien")   enemies.push({x,y,dx:(Math.random()*2-1)*baseSpeed*1.1, dy:(Math.random()*2-1)*baseSpeed*1.1, size:25, type:"alien",   health:2});
@@ -200,7 +241,7 @@ function initEnemies(){
 }
 
 // -----------------------------
-// Particles etc. (unchanged)
+// Particles
 // -----------------------------
 function createParticles(x,y,color,count=10){
   for(let i=0;i<count;i++){
@@ -229,7 +270,7 @@ function updateHealthBar(){
 }
 
 // -----------------------------
-// High Score & How to Play (unchanged)
+// High Score & How to Play
 // -----------------------------
 const banned = ["ass","bastard","bitch","bollocks","bugger","childfuck","cocksucker","cunt","dick","dildo","dyke","fag","faggot","fuck","fucker","goddamn","hell","homo","jerk","kike","motherfucker","nigger","piss","prick","pussy","shit","slut","spastic","twat","whore"];
 function sanitizeName(name){
@@ -281,30 +322,24 @@ function resetGame(){
     score = 0;
     health = maxHealth;
     startTime = Date.now();
-    difficulty = 0.25;
+    difficulty = 0.35;
     initEnemies();
     updateHealthBar();
 }
 
 // -----------------------------
-// Game Loop – main logic
+// Game Loop
 // -----------------------------
 function update(){
     if(gameState!=="playing") return;
 
     const elapsed = (Date.now() - startTime) / 1000;
 
-    // ────────────────────────────────────────────────
-    //   Difficulty progression – slow & smooth
-    // ────────────────────────────────────────────────
-    //  0–60s   → ~0.25–0.5   (easy)
-    //  60–180s → ~0.5–1.2
-    //  180–360s→ ~1.2–2.3
-    //  360s+   → 2.3–4.0+     (very hard)
-    difficulty = 0.25 + Math.pow(elapsed / 70, 1.6) * 2.8;
-    difficulty = Math.min(difficulty, 5.0);   // safety cap
+    // Difficulty progression
+    difficulty = 0.35 + Math.pow(elapsed / 90, 1.35) * 2.8;
+    difficulty = Math.min(difficulty, 5.0);
 
-    // Update ship
+    // Ship controls
     if(keys["ArrowLeft"])  ship.angle -= 0.08;
     if(keys["ArrowRight"]) ship.angle += 0.08;
     if(keys["ArrowUp"]){
@@ -313,7 +348,7 @@ function update(){
     }
     ship.x += ship.dx; ship.y += ship.dy;
 
-    // Wrap around
+    // Wrap ship
     if(ship.x<0) ship.x=canvas.width;
     if(ship.x>canvas.width) ship.x=0;
     if(ship.y<0) ship.y=canvas.height;
@@ -326,7 +361,7 @@ function update(){
     }
     if(!keys[" "]) keys._shooted = false;
 
-    // ─── Bullets ─────────────────────────────────────
+    // Bullets
     bullets.forEach((b,i)=>{
         b.x += b.dx; b.y += b.dy;
         if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height){
@@ -353,8 +388,8 @@ function update(){
         });
     });
 
-    // ─── Enemies movement & collision ────────────────
-    enemies.forEach(e=>{
+    // Enemies movement & collision
+    enemies.forEach((e,i)=>{
         if(e.type !== "health"){
             e.x += e.dx * (1 + difficulty*0.15);
             e.y += e.dy * (1 + difficulty*0.15);
@@ -368,7 +403,7 @@ function update(){
         if(checkCollision(ship.x,ship.y,ship.size/2,e.x,e.y,e.size)){
             if(e.type === "health"){
                 health = Math.min(maxHealth, health + 35);
-                enemies.splice(enemies.indexOf(e),1);
+                enemies.splice(i,1);
             } else {
                 takeDamage(20);
                 createParticles(ship.x,ship.y,"#0f0",15);
@@ -379,8 +414,8 @@ function update(){
 
     particles.forEach((p,i)=>{p.x+=p.dx;p.y+=p.dy;p.life--; if(p.life<=0) particles.splice(i,1);});
 
-    // ─── Spawn new enemies (frequency scales with difficulty) ───
-    const spawnChance = 0.007 + difficulty * 0.028;   // ~0.007 → ~0.15
+    // Spawn enemies
+    const spawnChance = 0.007 + difficulty * 0.028;
     if(Math.random() < spawnChance){
         const types = ["boulder","alien","swarm"];
         if(difficulty > 1.4) types.push("alien","swarm");
@@ -389,7 +424,7 @@ function update(){
         createEnemy(chosen);
     }
 
-    // Rare health orb (more common early game)
+    // Health orbs (more common early)
     if(Math.random() < 0.0008 + (1.2 - difficulty)*0.0012){
         createEnemy("health");
     }
@@ -398,7 +433,7 @@ function update(){
     updateHealthBar();
 }
 
-// ─── Drawing functions (mostly unchanged) ────────────────
+// Drawing functions
 function drawShip(){
   ctx.save();
   ctx.translate(ship.x,ship.y);
