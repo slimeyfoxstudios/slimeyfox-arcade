@@ -2,374 +2,165 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Slimey Blaster</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slimey Blaster – Game Design Document</title>
 <style>
-body {
-  margin: 0;
-  background: black;
-  font-family: Arial;
-  color: white;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-start;
-  height: 100vh;
-}
-#leaderboard {
-  width: 220px;
-  background: #111;
-  padding: 10px;
-  border-radius: 8px;
-  margin-right: 10px;
-}
-#leaderboard h3 { margin: 0 0 5px 0; font-size: 18px; color: #0ff; }
-#leaderboard ol { padding-left: 20px; text-align: left; }
-#leaderboard button {
-  margin-top:10px;
-  width:100%;
-  padding:8px;
-  font-size:16px;
-  color:#0ff;
-  background:#111;
-  border:2px solid #0ff;
-  border-radius:5px;
-  cursor:pointer;
-}
-#gameContainer { position: relative; }
-canvas { display: block; background: #000; border: 2px solid #333; }
-#hud {
-  position: absolute;
-  top: 10px;
-  right: -180px;
-  width: 160px;
-  text-align: left;
-  font-size: 18px;
-  color: #0f0;
-}
-#healthContainer {
-  position: relative;
-  width: 30px;
-  height: 200px;
-  background: #333;
-  border: 2px solid #0f0;
-  margin-top: 20px;
-}
-#healthBar {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-  background: green;
-}
-#overlay {
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  background: rgba(0,0,0,0.85);
-  color:#0ff;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  font-family: Arial;
-  font-size:32px;
-  z-index:10;
-}
-#overlay button {
-  margin-top:20px;
-  padding:15px 30px;
-  font-size:24px;
-  color:#0ff;
-  background:#111;
-  border:2px solid #0ff;
-  border-radius:8px;
-  cursor:pointer;
-}
-#guideOverlay {
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  background: rgba(0,0,0,0.9);
-  color:#0ff;
-  display:none;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  font-family: Arial;
-  font-size:20px;
-  z-index:20;
-}
-#guideOverlay h2 { margin-bottom: 20px; }
-#guideOverlay div.enemy {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  margin:10px;
-  font-size:16px;
-}
-#guideOverlay div.enemy svg { margin-bottom:5px; }
-#guideOverlay button {
-  margin-top:20px;
-  padding:10px 20px;
-  font-size:18px;
-  color:#0ff;
-  background:#111;
-  border:2px solid #0ff;
-  border-radius:5px;
-  cursor:pointer;
-}
-#guideEnemies { display:flex; gap:30px; flex-wrap: wrap; justify-content:center; }
+  body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; background: #1e1e2f; color: #f0f0f0; }
+  h1, h2, h3 { color: #61dafb; }
+  h1 { font-size: 2.5em; margin-bottom: 0.2em; }
+  h2 { font-size: 1.8em; margin-top: 1em; }
+  h3 { font-size: 1.3em; margin-top: 0.8em; }
+  p { margin: 0.5em 0; }
+  ul { margin: 0.5em 0 1em 2em; }
+  li { margin: 0.3em 0; }
+  .section { margin-bottom: 2em; }
+  a { color: #61dafb; text-decoration: none; }
 </style>
 </head>
 <body>
 
-<div id="leaderboard">
-  <h3>Top 10 High Scores</h3>
-  <ol id="scoresList"></ol>
-  <button id="howToPlay">How to Play</button>
-  <button id="enemyGuide">Enemy Guide</button>
+<h1>Slimey Blaster – Game Design Document</h1>
+
+<div class="section">
+<h2>1. Game Overview</h2>
+<p><strong>Concept:</strong> Slimey Blaster is a fast-paced arcade shooter where players control a slime-shooting hero navigating colorful, hazardous environments. Dodge obstacles, defeat slime-mutant enemies, and collect power-ups to survive escalating waves of challenges.</p>
+<p><strong>Core Gameplay Loop:</strong></p>
+<ul>
+  <li>Enter level → navigate terrain → avoid hazards</li>
+  <li>Shoot slimes → earn points → collect power-ups</li>
+  <li>Defeat mini-bosses → reach level exit</li>
+  <li>Progressively harder levels with more enemies and environmental hazards</li>
+</ul>
 </div>
 
-<div id="gameContainer">
-  <canvas id="game" width="800" height="600"></canvas>
-  <div id="hud">
-    <div id="score">Score: 0</div>
-    <div id="healthContainer">
-      <div id="healthBar"></div>
-    </div>
-  </div>
-  <div id="overlay">
-    <div id="overlayText">SLIMEY BLASTER</div>
-    <button id="startButton">START GAME</button>
-  </div>
-  <div id="guideOverlay">
-    <h2>Enemy Guide</h2>
-    <div id="guideEnemies">
-      <div class="enemy">
-        <svg width="40" height="40"><circle cx="20" cy="20" r="18" stroke="#f0f" stroke-width="2" fill="none"/></svg>
-        <div>Boulder - 10 pts</div>
-      </div>
-      <div class="enemy">
-        <svg width="40" height="40"><circle cx="20" cy="20" r="18" fill="red"/></svg>
-        <div>Alien Drone - 20 pts</div>
-      </div>
-      <div class="enemy">
-        <svg width="40" height="40"><circle cx="20" cy="20" r="8" stroke="#f0f" stroke-width="2" fill="none"/></svg>
-        <div>Mini Swarm - 10 pts</div>
-      </div>
-      <div class="enemy">
-        <svg width="40" height="40"><circle cx="20" cy="20" r="12" fill="lime"/></svg>
-        <div>Health Orb - +20 HP</div>
-      </div>
-      <div class="enemy">
-        <svg width="40" height="40"><polygon points="20,0 30,7 35,20 30,33 20,40 10,33 5,20 10,7" fill="black" stroke="red" stroke-width="2"/></svg>
-        <div>Flashing Octacon - 50 pts</div>
-      </div>
-    </div>
-    <button id="closeGuide">Close</button>
-  </div>
+<div class="section">
+<h2>2. Gameplay Mechanics</h2>
+<h3>Player Controls</h3>
+<ul>
+  <li>Move: Arrow keys / WASD / Virtual joystick</li>
+  <li>Shoot: Space / Tap button</li>
+  <li>Dash / Boost: Shift / Swipe</li>
+  <li>Special Ability: E / Gesture</li>
+</ul>
+<h3>Combat Mechanics</h3>
+<ul>
+  <li>Slime Blasts: Standard attack, can hit multiple enemies if charged</li>
+  <li>Power Slimes: Drop power-ups or points</li>
+  <li>Boss Encounters: Mini-bosses with unique patterns per level</li>
+</ul>
+<h3>Scoring System</h3>
+<ul>
+  <li>Points per enemy destroyed</li>
+  <li>Combo multiplier for consecutive hits without damage</li>
+  <li>Bonus points for speedrun completion</li>
+</ul>
+<h3>Player Progression</h3>
+<ul>
+  <li>Unlock new slime types (fire slime, ice slime)</li>
+  <li>Upgrade attack speed, damage, dash cooldown with coins</li>
+  <li>Optional cosmetic skins</li>
+</ul>
 </div>
 
-<script>
-// -----------------------------
-// Setup
-// -----------------------------
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const hudScore = document.getElementById("score");
-const healthBar = document.getElementById("healthBar");
-let ship = {x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0};
-let bullets = [];
-let enemies = [];
-let particles = [];
-let score = 0;
-let health = 100;
-const maxHealth = 100;
-let startTime = 0;
-let gameState = "menu";
+<div class="section">
+<h2>3. Levels & Environments</h2>
+<h3>Level Themes</h3>
+<ul>
+  <li>Slime Swamp: sticky traps, green goo, small slime mobs</li>
+  <li>Crystal Caverns: reflective crystals, narrow pathways, bouncing slimes</li>
+  <li>Volcanic Core: lava pits, fire slimes, fast hazards</li>
+  <li>Neon City: futuristic, neon platforms, electric slime hazards</li>
+</ul>
+<h3>Environmental Hazards</h3>
+<ul>
+  <li>Spike traps</li>
+  <li>Rolling boulders / debris</li>
+  <li>Slime puddles slow movement</li>
+  <li>Lava / fire zones</li>
+</ul>
+<h3>Level Objectives</h3>
+<ul>
+  <li>Reach the exit point</li>
+  <li>Optional side objectives: collect coins, destroy all enemies, complete in record time</li>
+</ul>
+</div>
 
-// -----------------------------
-// Background stars
-// -----------------------------
-const stars = [];
-for(let i=0;i<150;i++){stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,size:Math.random()*2+1,speed:Math.random()*0.3+0.1});}
+<div class="section">
+<h2>4. Enemies & Bosses</h2>
+<h3>Regular Enemies</h3>
+<ul>
+  <li>Slime Minions – basic, slow, numerous</li>
+  <li>Spiky Slimes – small, bounce unpredictably</li>
+  <li>Exploding Slimes – detonate on proximity</li>
+  <li>Flying Slimes – attack from above</li>
+</ul>
+<h3>Bosses</h3>
+<ul>
+  <li>Slime King – shoots projectiles, splits into smaller slimes</li>
+  <li>Crystal Slime – reflective shield, timing-based weak points</li>
+  <li>Lava Golem – fire-based heavy attacks with knockback</li>
+  <li>Neon Phantom – fast, teleporting, predictive attacks</li>
+</ul>
+</div>
 
-// -----------------------------
-// Sounds
-// -----------------------------
-const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function laserSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="square";o.frequency.setValueAtTime(800,AudioCtx.currentTime);g.gain.value=0.15;o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.05);}
-function explosionSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="sawtooth";o.frequency.setValueAtTime(120,AudioCtx.currentTime);g.gain.setValueAtTime(0.2,AudioCtx.currentTime);o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.15);}
-function deathSound(){const o=AudioCtx.createOscillator();const g=AudioCtx.createGain();o.type="triangle";o.frequency.setValueAtTime(60,AudioCtx.currentTime);g.gain.setValueAtTime(0.3,AudioCtx.currentTime);o.connect(g);g.connect(AudioCtx.destination);o.start();o.stop(AudioCtx.currentTime+0.5);}
-const humOsc = AudioCtx.createOscillator();
-const humGain = AudioCtx.createGain();
-humOsc.type="sine"; humOsc.frequency.value=55; humGain.gain.value=0.02;
-humOsc.connect(humGain); humGain.connect(AudioCtx.destination); humOsc.start();
+<div class="section">
+<h2>5. Art & Visual Style</h2>
+<ul>
+  <li>Cartoonish, vivid 2D/2.5D style</li>
+  <li>Bright, saturated colors per level</li>
+  <li>Squishy slime physics, bouncy movement, fluid attacks</li>
+  <li>Particle effects: slime splashes, glowing projectiles, screen shake</li>
+</ul>
+</div>
 
-// -----------------------------
-// Controls
-// -----------------------------
-const keys={};
-document.addEventListener("keydown",e=>keys[e.key]=true);
-document.addEventListener("keyup",e=>keys[e.key]=false);
+<div class="section">
+<h2>6. Audio Design</h2>
+<ul>
+  <li><strong>Music:</strong> Arcade-style synthwave / chiptune, dynamic tracks per level intensity</li>
+  <li><strong>Sound Effects:</strong> Slime squelches, explosions, power-up chimes, dash & special cues</li>
+  <li><strong>Voice/UI Prompts:</strong> Fun optional voice clips, minimalistic HUD sounds</li>
+</ul>
+</div>
 
-// -----------------------------
-// Bullets
-// -----------------------------
-function shoot(){bullets.push({x:ship.x+Math.cos(ship.angle)*ship.size/2,y:ship.y+Math.sin(ship.angle)*ship.size/2,dx:Math.cos(ship.angle)*8,dy:Math.sin(ship.angle)*8,size:4});laserSound();}
+<div class="section">
+<h2>7. User Interface (UI)</h2>
+<ul>
+  <li>HUD: Health, ammo/slime meter, score & combo multiplier, power-up icons</li>
+  <li>Menus: Start, Options, Leaderboard, Pause, Level selection</li>
+  <li>Settings: Audio, key/controller mapping, graphics quality</li>
+</ul>
+</div>
 
-// -----------------------------
-// Enemies
-// -----------------------------
-function createEnemy(type){
-  const x=Math.random()*canvas.width;
-  const y=Math.random()*canvas.height;
-  if(type==="boulder") enemies.push({x,y,dx:(Math.random()*2-1)*1.5,dy:(Math.random()*2-1)*1.5,size:40,type:"boulder",health:1});
-  if(type==="alien") enemies.push({x,y,dx:(Math.random()*2-1)*2,dy:(Math.random()*2-1)*2,size:25,type:"alien",health:2});
-  if(type==="swarm") enemies.push({x,y,dx:(Math.random()*2-1)*3,dy:(Math.random()*2-1)*3,size:10,type:"swarm",health:1});
-  if(type==="octacon") enemies.push({x,y,dx:(Math.random()*2-1)*2.5,dy:(Math.random()*2-1)*2.5,size:30,type:"octacon",health:3});
-  if(type==="health") enemies.push({x,y,dx:0,dy:0,size:20,type:"health",health:1});
-}
-function initEnemies(){enemies=[];for(let i=0;i<5;i++) createEnemy("boulder");for(let i=0;i<2;i++) createEnemy("alien");for(let i=0;i<3;i++) createEnemy("swarm");}
+<div class="section">
+<h2>8. Monetization & Extras (Optional)</h2>
+<ul>
+  <li>Cosmetic skins (non-pay-to-win)</li>
+  <li>Achievements & leaderboard</li>
+  <li>In-game currency to unlock slime types / upgrades</li>
+  <li>Optional ads or premium version</li>
+</ul>
+</div>
 
-// -----------------------------
-// Particles
-// -----------------------------
-function createParticles(x,y,color,count=10){for(let i=0;i<count;i++){particles.push({x,y,dx:(Math.random()*4-2),dy:(Math.random()*4-2),size:Math.random()*3+1,life:30,color});}}
+<div class="section">
+<h2>9. Technical Requirements</h2>
+<ul>
+  <li>Engine: Unity / Unreal Engine 5</li>
+  <li>Platforms: PC, Console, Mobile (iOS & Android)</li>
+  <li>Performance: 60 FPS on mid-tier devices</li>
+  <li>Resolution: Scalable from 720p to 4K</li>
+</ul>
+</div>
 
-// -----------------------------
-// Collision
-// -----------------------------
-function checkCollision(ax,ay,ar,bx,by,br){return Math.hypot(ax-bx,ay-by)<ar+br;}
-function takeDamage(amount){health-=amount;if(health<0) health=0;updateHealthBar();if(health===0){deathSound();gameOverSequence();}}
+<div class="section">
+<h2>10. Development Roadmap</h2>
+<ul>
+  <li>Prototype: Player movement & shooting</li>
+  <li>Alpha: First two levels, basic enemies, scoring system</li>
+  <li>Beta: Full levels, bosses, upgrades, UI integration</li>
+  <li>Release Candidate: Polish, optimization, sound & effects</li>
+  <li>Launch: Marketing, store submission, post-launch updates</li>
+</ul>
+</div>
 
-// -----------------------------
-// Health bar
-// -----------------------------
-function updateHealthBar(){const percent=Math.max(0,health)/maxHealth*100;healthBar.style.height=percent+"%";healthBar.style.background=(percent>50?"green":percent>25?"yellow":"red");}
-
-// -----------------------------
-// High Score
-// -----------------------------
-const banned = ["ass","bastard","bitch","bollocks","bugger","childfuck","cocksucker","cunt","dick","dildo","dyke","fag","faggot","fuck","fucker","goddamn","hell","homo","jerk","kike","motherfucker","nigger","piss","prick","pussy","shit","slut","spastic","twat","whore"];
-function sanitizeName(name){let clean=name.substring(0,10);banned.forEach(w=>{const r=new RegExp(w,"gi");clean=clean.replace(r,"*".repeat(w.length));});return clean;}
-function getHighScores(){return JSON.parse(localStorage.getItem("highScores")||"[]");}
-function saveHighScores(scores){localStorage.setItem("highScores",JSON.stringify(scores));}
-function renderLeaderboard(){const scores=getHighScores();const list=document.getElementById("scoresList");list.innerHTML="";scores.forEach(s=>{const li=document.createElement("li");li.textContent=`${s.name} - ${s.score}`;list.appendChild(li);});}
-function checkHighScore(){const scores=getHighScores();if(scores.length<10||score>scores[scores.length-1].score){let name=prompt("New High Score! Enter name (max 10 chars)","Player");if(name){name=sanitizeName(name);scores.push({name:name,score:score});scores.sort((a,b)=>b.score-a.score);if(scores.length>10)scores.pop();saveHighScores(scores);renderLeaderboard();}}}
-document.addEventListener("DOMContentLoaded",()=>renderLeaderboard());
-
-// -----------------------------
-// How to Play + Enemy Guide
-// -----------------------------
-document.getElementById("howToPlay").addEventListener("click", ()=>{
-  alert(
-`Slimey Blaster Instructions:
-
-- Arrow Left/Right: Rotate ship
-- Arrow Up: Move forward
-- Space: Shoot
-- Destroy boulders and alien enemies
-- Avoid collisions to keep health
-- Green orbs restore health
-- Survive as long as possible to score points
-- Try to reach the top 10 leaderboard!`
-  );
-});
-const guideOverlay=document.getElementById("guideOverlay");
-document.getElementById("enemyGuide").addEventListener("click",()=>{guideOverlay.style.display="flex";});
-document.getElementById("closeGuide").addEventListener("click",()=>{guideOverlay.style.display="none";});
-
-// -----------------------------
-// Overlay / Start & Game Over
-// -----------------------------
-const overlay=document.getElementById("overlay");
-const overlayText=document.getElementById("overlayText");
-const startButton=document.getElementById("startButton");
-startButton.addEventListener("click",()=>{
-  if(gameState==="menu"||gameState==="gameover"){
-    gameState="playing";
-    overlay.style.display="none";
-    resetGame();
-    loop();
-  }
-});
-function gameOverSequence(){
-  gameState="gameover";
-  overlayText.textContent="GAME OVER";
-  startButton.textContent="PLAY AGAIN";
-  overlay.style.display="flex";
-  checkHighScore();
-}
-
-// -----------------------------
-// Reset Game
-// -----------------------------
-function resetGame(){
-  ship={x:canvas.width/2,y:canvas.height/2,angle:0,size:20,dx:0,dy:0};
-  bullets=[];particles=[];score=0;health=maxHealth;startTime=Date.now();
-  initEnemies();updateHealthBar();
-}
-
-// -----------------------------
-// Game Loop
-// -----------------------------
-function loop(){
-  requestAnimationFrame(loop);
-  if(gameState!=="playing") return;
-  const elapsed=(Date.now()-startTime)/1000;
-  const difficultyFactor=Math.min(elapsed/120,1);
-
-  // Spawn enemies
-  if(Math.random()<0.002+0.008*difficultyFactor){const types=["boulder","alien","swarm"];createEnemy(types[Math.floor(Math.random()*types.length)]);}
-  if(elapsed>90 && Math.random()<0.001 && !enemies.some(e=>e.type==="octacon")) createEnemy("octacon");
-  if(Math.random()<0.001+0.004*difficultyFactor && !enemies.some(e=>e.type==="health")) createEnemy("health");
-
-  // Move ship
-  if(keys["ArrowLeft"]) ship.angle-=0.08;if(keys["ArrowRight"]) ship.angle+=0.08;
-  if(keys["ArrowUp"]){ship.dx+=Math.cos(ship.angle)*0.2;ship.dy+=Math.sin(ship.angle)*0.2;}
-  ship.x+=ship.dx;ship.y+=ship.dy;
-  if(ship.x<0) ship.x=canvas.width;if(ship.x>canvas.width) ship.x=0;
-  if(ship.y<0) ship.y=canvas.height;if(ship.y>canvas.height) ship.y=0;
-
-  if(keys[" "]&&!keys._shooted){shoot();keys._shooted=true;}
-  if(!keys[" "]) keys._shooted=false;
-
-  // Update bullets
-  bullets.forEach((b,i)=>{
-    b.x+=b.dx;b.y+=b.dy;
-    if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height){bullets.splice(i,1);}
-    enemies.forEach((e,j)=>{
-      if(checkCollision(b.x,b.y,b.size,e.x,e.y,e.size)){
-        createParticles(e.x,e.y,"#f0f");
-        bullets.splice(i,1);e.health--;
-        if(e.health<=0){
-          explosionSound();
-          if(e.type==="boulder"&&e.size>15){createEnemy("boulder");createEnemy("boulder");}
-          if(e.type==="alien") score+=20;
-          else if(e.type==="octacon") score+=50;
-          else score+=10;
-          enemies.splice(j,1);
-        }
-      }
-    });
-  });
-
-  // Update enemies
-  enemies.forEach((e,i)=>{
-    if(e.type!=="health"&&checkCollision(ship.x,ship.y,ship.size/2,e.x,e.y,e.size)){
-      takeDamage(20);
-      createParticles(ship.x,ship.y,"#0f0",15);
-      e.health=0;
-    }
-    e.x+=e.dx*(1+difficultyFactor);
-    e.y+=e.dy*(1+difficultyFactor);
-    if(e.x<0) e.x=canvas.width;if(e.x>canvas.width) e.x=0;
-    if(e.y<0) e.y=canvas.height;if(e.y>canvas.height) e.y=0;
-  });
-
-  // Particles
-  particles.forEach((p,i)=>{p.x+=p.dx;p.y+=p.dy;p.life--; if(p.life<=0) particles.splice(i,1);});
-
-  // Draw
-  ctx.clearRect(0
+</body>
+</html>
