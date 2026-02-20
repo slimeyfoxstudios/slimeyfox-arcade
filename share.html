@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcade Bottom Share Panel</title>
+<style>
+body {
+  margin: 0;
+  background: #000; /* solid black for arcade feel */
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  position: relative;
+}
+
+/* CRT scanline overlay (optional) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.03),
+    rgba(255,255,255,0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Container for label + buttons */
+.share-wrapper {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 9999;
+
+  /* subtle neon glow */
+  box-shadow: 0 0 40px 10px rgba(0,255,255,0.2), 0 0 20px 5px rgba(255,0,255,0.2);
+  border-radius: 6px;
+  padding: 6px 12px;
+  transition: box-shadow 1s ease-in-out;
+}
+
+/* Arcade "INSERT COIN / SHARE" label with coin */
+.share-label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #00ffff;
+  text-shadow: 0 0 2px #00ffff, 0 0 4px #ff00ff;
+  letter-spacing: 2px;
+  animation: flicker 1.5s infinite;
+  font-weight: bold;
+  gap: 6px;
+}
+
+/* Blinking coin animation */
+.coin {
+  width: 12px;
+  height: 12px;
+  fill: #ffcc00;
+  stroke: #ffff00;
+  stroke-width: 1;
+  animation: coin-blink 1s infinite;
+}
+
+@keyframes coin-blink {
+  0%, 50%, 100% { opacity: 1; transform: translateY(0); }
+  25%, 75% { opacity: 0.2; transform: translateY(-2px); }
+}
+
+/* Flicker animation for label */
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+  20%, 22%, 24%, 55% { opacity: 0.4; }
+}
+
+/* Horizontal arcade button strip */
+.share-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  background: rgba(10,10,20,0.8);
+  padding: 6px 12px;
+  border: 2px solid #00ffff;
+  box-shadow: 0 0 20px 4px rgba(0,255,255,0.2), 0 0 10px 2px rgba(255,0,255,0.2);
+  border-radius: 4px;
+}
+
+/* Pixel-style buttons */
+.share-btn {
+  width: 44px;
+  height: 44px;
+  background: #0a0a0f;
+  border: 2px solid #00ffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: 0.15s ease, box-shadow 0.3s ease;
+}
+
+/* Hover effect - arcade flash */
+.share-btn:hover {
+  background: #ff00ff;
+  border-color: #ff00ff;
+  transform: scale(1.2);
+  box-shadow: 0 0 12px #ff00ff, 0 0 8px #00ffff;
+}
+
+/* Icons */
+.share-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: #00ffff;
+  transition: 0.15s ease;
+}
+
+.share-btn:hover svg {
+  fill: #000;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .share-buttons {
+    gap: 8px;
+    padding: 4px 8px;
+  }
+  .share-btn {
+    width: 36px;
+    height: 36px;
+  }
+  .share-label {
+    font-size: 12px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="share-wrapper">
+  <!-- Arcade label with blinking coin -->
+  <div class="share-label">
+    <svg class="coin" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10"/>
+    </svg>
+    INSERT COIN / SHARE
+  </div>
+
+  <!-- Buttons strip -->
+  <div class="share-buttons">
+
+    <!-- Facebook -->
+    <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u=https://www.slimeyfoxstudios.com" target="_blank">
+      <svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.5 9.9v-7H8v-3h2.5V9.5c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.5V12H17l-.5 3h-2.7v7A10 10 0 0022 12z"/></svg>
+    </a>
+
+    <!-- X -->
+    <a class="share-btn" href="https://twitter.com/intent/tweet?url=https://www.slimeyfoxstudios.com" target="_blank">
+      <svg viewBox="0 0 24 24"><path d="M18.9 2H22l-7.6 8.7L23 22h-6.8l-5.3-7-6.2 7H2l8.1-9.2L1 2h6.9l4.8 6.4L18.9 2z"/></svg>
+    </a>
+
+    <!-- Reddit -->
+    <a class="share-btn" href="https://www.reddit.com/submit?url=https://www.slimeyfoxstudios.com" target="_blank">
+      <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 012 2v2.1a7 7 0 014.9 2.1l2-1a1 1 0 11.9 1.8l-2 1A7 7 0 1112 6a7 7 0 01.5 14H12A7 7 0 0112 2z"/></svg>
+    </a>
+
+    <!-- LinkedIn -->
+    <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https://www.slimeyfoxstudios.com" target="_blank">
+      <svg viewBox="0 0 24 24"><path d="M4 3a2 2 0 100 4 2 2 0 000-4zM2 8h4v14H2zM9 8h3.6v2h.1c.5-1 1.8-2 3.8-2 4 0 4.7 2.6 4.7 6v8h-4v-7c0-1.7 0-3.9-2.4-3.9s-2.7 1.9-2.7 3.8v7H9z"/></svg>
+    </a>
+
+  </div>
+</div>
+
+</body>
+</html>
